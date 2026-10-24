@@ -448,12 +448,12 @@ table.t tr.click:hover td { background: var(--surface-2); }
 
 .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 6px 2px 0; font-size: 12px; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
-.lg { width: 16px; height: 12px; border-radius: 3px; display: inline-block; }
-.lg-pren { background: var(--accent); }
-.lg-arr { background: var(--accent); box-shadow: inset 0 0 0 2px var(--ink); }
-.lg-fatto { background: var(--accent); opacity: .45; }
-.lg-posa { background: repeating-linear-gradient(135deg, var(--surface) 0 3px, var(--accent-soft) 3px 6px); border: 1px solid var(--line); }
-.lg-off { background: repeating-linear-gradient(135deg, var(--surface-2) 0 3px, transparent 3px 6px); border: 1px solid var(--line); }
+.lgd { width: 16px; height: 12px; border-radius: 3px; display: inline-block; }
+.lgd-pren { background: var(--accent); }
+.lgd-arr { background: var(--accent); box-shadow: inset 0 0 0 2px var(--ink); }
+.lgd-fatto { background: var(--accent); opacity: .45; }
+.lgd-posa { background: repeating-linear-gradient(135deg, var(--surface) 0 3px, var(--accent-soft) 3px 6px); border: 1px solid var(--line); }
+.lgd-off { background: repeating-linear-gradient(135deg, var(--surface-2) 0 3px, transparent 3px 6px); border: 1px solid var(--line); }
 .slot-ghost { position: absolute; left: 2px; right: 2px; z-index: 1; border: 1.5px dashed var(--accent); border-radius: 6px; color: var(--accent); background: var(--accent-soft);
   font-size: 11px; font-weight: 700; padding: 1px 5px; pointer-events: none; white-space: nowrap; overflow: hidden; }
 .flow { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; }
@@ -495,6 +495,52 @@ table.t tr.click:hover td { background: var(--surface-2); }
 .rephead span { text-transform: none; letter-spacing: 0; font-weight: 600; }
 .chips-label { flex-basis: 100%; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-top: 4px; }
 .chips-label.mine { color: var(--accent); }
+
+/* Ricerca posto e conferma */
+.cp-sec { display: flex; flex-direction: column; gap: 10px; }
+.cp-step { display: flex; align-items: center; gap: 10px; }
+.cp-n { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-weight: 700; flex: none; }
+.cp-st { font-family: var(--f-display); font-size: 22px; font-weight: 600; }
+.cp-step .btn, .cp-step .cp-sel { margin-left: auto; }
+.cp-sel { font-weight: 600; color: var(--accent); font-size: 15px; }
+.cp-hint { margin: 0; padding: 16px; border-radius: 12px; background: var(--surface-2); color: var(--muted); font-size: 15px; text-align: center; }
+.cp-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.cp-tile { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-height: 66px; padding: 11px 12px 11px 42px; border: 2px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-align: left; cursor: pointer; }
+.cp-tile b { font-size: 15px; line-height: 1.25; }
+.cp-tile small { color: var(--muted); font-size: 12.5px; }
+.cp-tile .ck { position: absolute; left: 11px; top: 12px; width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--line); display: grid; place-items: center; color: transparent; }
+.cp-tile .ck svg { width: 15px; height: 15px; stroke-width: 3; }
+.cp-tile:hover { border-color: var(--accent); }
+.cp-tile[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.cp-tile[aria-pressed="true"] .ck { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.cp-chosen { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cp-chosen .chip { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.search.big input[type] { min-height: 50px; font-size: 17px; border-width: 2px; }
+.cp-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; }
+.cp-day-b { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 10px 4px; border: 2px solid var(--line); border-radius: 12px; background: var(--surface); cursor: pointer; color: var(--ink); }
+.cp-day-b .g { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; }
+.cp-day-b .n { font-family: var(--f-display); font-size: 28px; line-height: 1.05; font-variant-numeric: lining-nums; }
+.cp-day-b .m { font-size: 13px; color: var(--muted); }
+.cp-day-b .c { margin-top: 4px; font-size: 12px; font-weight: 700; color: var(--ok); }
+.cp-day-b:hover:not([disabled]) { border-color: var(--accent); }
+.cp-day-b[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+.cp-day-b[aria-pressed="true"] .g, .cp-day-b[aria-pressed="true"] .m, .cp-day-b[aria-pressed="true"] .c { color: var(--on-accent); }
+.cp-day-b[disabled] { opacity: .45; cursor: not-allowed; }
+.cp-day-b[disabled] .c { color: var(--muted); }
+.cp-day-b.more { border-style: dashed; }
+.cp-day-b.more .c { color: var(--accent); }
+.cp-op.still { cursor: default; }
+.cp-op.still:hover { background: var(--surface); color: var(--ink); }
+.rp { display: flex; flex-direction: column; gap: 6px; padding: 18px; border-radius: 16px; background: var(--accent-soft); }
+.rp .eyebrow { color: var(--accent); margin: 0; }
+.rp-day { font-family: var(--f-display); font-size: clamp(26px, 5vw, 34px); line-height: 1.1; font-weight: 600; }
+.rp-time { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rp-time span { font-size: 15px; font-weight: 500; color: var(--muted); }
+.rp-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 15px; margin-top: 4px; }
+.rp-q { font-family: var(--f-display); font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+.rp-client { display: flex; align-items: center; gap: 12px; padding: 12px; border: 2px solid var(--accent); border-radius: 14px; }
+.lastbox { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); }
+.lastbox .eyebrow { color: var(--accent); margin-bottom: 2px; }
 
 @media (prefers-reduced-motion: no-preference) {
   .dialog { animation: up .18s ease-out; }
@@ -1023,7 +1069,7 @@ function viewCliente() {
         <dl class="facts">
           <dt>Telefono</dt><dd>${tel}</dd>
           <dt>Email</dt><dd>${c.email ? h(c.email) : '<span class="muted">—</span>'}</dd>
-          <dt>Compleanno</dt><dd>${c.compleanno ? fdate(c.compleanno).replace(/ \d{4}$/, '') : '<span class="muted">—</span>'}</dd>
+          <dt>Data di nascita</dt><dd>${c.compleanno ? `<span class="num">${isoToDmy(c.compleanno)}</span>` : '<span class="muted">—</span>'}</dd>
           ${cfg.usaAllergie ? `<dt>Allergie</dt><dd>${c.avvertenze ? `<span class="strong" style="color:var(--danger)">${h(c.avvertenze)}</span>` : '<span class="muted">nessuna annotata</span>'}</dd>` : ''}
           <dt>Note</dt><dd>${c.note ? h(c.note) : '<span class="muted">—</span>'}</dd>
           <dt>Promozioni</dt><dd>${promoOk(c) ? `consenso firmato${c.consensoData ? ' il ' + fdate(c.consensoData) : ''}` : 'nessun consenso: solo promemoria degli appuntamenti'}</dd>
@@ -1070,8 +1116,11 @@ function catalogo() {
   if (cart.tab === 'servizi') {
     const l = data.Servizi.filter(s => bool(s.attivo) && (!q || s.nome.toLowerCase().includes(q)));
     if (!l.length) return `<div class="empty">${q ? 'Nessun servizio trovato.' : 'Nessun servizio nel listino. Aggiungili da Listino e staff.'}</div>`;
+    const uv = !q && typeof ultimaVolta === 'function' ? ultimaVolta(cart.clienteId) : null;
+    const tileS = s => `<button class="tile" type="button" data-act="addServizio" data-id="${s.id}"><span class="n">${h(s.nome)}</span><span class="p num">${prezzoTxt(s)}${num(s.durata) ? ` · ${num(s.durata)} min` : ''}</span></button>`;
+    const last = uv ? `${lastBox(uv, 'cassaRipeti', 'Aggiungi tutto')}<div class="tiles" style="margin:10px 0 16px">${uv.ids.map(id => derive().by.Servizi.get(id)).filter(Boolean).map(tileS).join('')}</div>` : '';
     const groups = servGroups(l, cart.operatoreId);
-    return groups.map(([r, items], gi) => `${groups.length > 1 ? repHead(r, cart.operatoreId, gi === 0) : ''}<div class="tiles" style="margin-bottom:14px">${items.map(s => `<button class="tile" type="button" data-act="addServizio" data-id="${s.id}"><span class="n">${h(s.nome)}</span><span class="p num">${prezzoTxt(s)}${num(s.durata) ? ` · ${num(s.durata)} min` : ''}</span></button>`).join('')}</div>`).join('');
+    return last + groups.map(([r, items], gi) => `${groups.length > 1 ? repHead(r, cart.operatoreId, gi === 0) : ''}<div class="tiles" style="margin-bottom:14px">${items.map(s => `<button class="tile" type="button" data-act="addServizio" data-id="${s.id}"><span class="n">${h(s.nome)}</span><span class="p num">${prezzoTxt(s)}${num(s.durata) ? ` · ${num(s.durata)} min` : ''}</span></button>`).join('')}</div>`).join('');
   }
   const cat = cart.tab === 'prodotti' ? 'rivendita' : 'consumo';
   const l = data.Prodotti.filter(p => bool(p.attivo) && p.categoria === cat && (!q || `${p.nome} ${p.marca}`.toLowerCase().includes(q) || String(p.barcode) === cart.q.trim()));
@@ -1340,11 +1389,14 @@ function viewLogin() {
 const VIEWS = { agenda: viewAgenda, oggi: viewOggi, clienti: viewClienti, cliente: viewCliente, cassa: viewCassa, magazzino: viewMagazzino, listino: viewListino, statistiche: viewStatistiche, impostazioni: viewImpostazioni };
 
 /* ---------- Finestre e moduli ---------- */
-function openModal(html, wide = false) {
+function openModal(html, wide = false, opts = {}) {
   const m = $('#modal');
+  const prev = m.querySelector('.dialog');
+  const sc = opts.keepScroll && prev ? prev.scrollTop : 0;
   m.innerHTML = `<div class="dialog ${wide ? 'wide' : ''}" role="dialog" aria-modal="true">${html}</div>`;
   m.hidden = false;
-  setTimeout(() => { const f = m.querySelector('[autofocus], input:not([type=hidden]), select, textarea, .btn.primary'); f?.focus(); }, 30);
+  if (sc) m.querySelector('.dialog').scrollTop = sc;
+  if (!opts.noFocus) setTimeout(() => { const f = m.querySelector('[autofocus], input:not([type=hidden]), select, textarea, .btn.primary'); f?.focus({ preventScroll: !!sc }); }, 30);
 }
 function closeModal() { $('#modal').hidden = true; $('#modal').innerHTML = ''; formHandler = null; }
 let formHandler = null;
@@ -1357,6 +1409,7 @@ function form({ title, fields, values = {}, onSave, onDelete, delLabel = 'Elimin
     const hint = x.hint ? `<span class="hint">${x.hint}</span>` : '';
     if (x.t === 'check') return `<label class="check ${x.full !== false ? 'full' : ''}" for="${id}"><input type="checkbox" id="${id}" name="${x.k}" ${bool(v) ? 'checked' : ''}><span>${x.l}${x.hint ? `<br>${hint}` : ''}</span></label>`;
     if (x.t === 'select') return `<label class="${cls}" for="${id}">${x.l}<select id="${id}" name="${x.k}">${x.o.map(([ov, ol]) => `<option value="${h(ov)}" ${String(ov) === String(v) ? 'selected' : ''}>${h(ol)}</option>`).join('')}</select>${hint}</label>`;
+    if (x.t === 'dmy') return `<label class="${cls}" for="${id}">${x.l}<input id="${id}" name="${x.k}" type="text" inputmode="numeric" placeholder="gg/mm/aaaa" maxlength="10" autocomplete="off" data-dmy="1" value="${h(isoToDmy(v))}">${hint}</label>`;
     if (x.t === 'area') return `<label class="${cls}" for="${id}">${x.l}<textarea id="${id}" name="${x.k}" placeholder="${h(x.ph || '')}">${h(v)}</textarea>${hint}</label>`;
     return `<label class="${cls}" for="${id}">${x.l}<input id="${id}" name="${x.k}" type="${x.t || 'text'}" value="${h(v)}" placeholder="${h(x.ph || '')}" ${x.req ? 'required' : ''} ${x.step ? `step="${x.step}"` : ''} ${x.min != null ? `min="${x.min}"` : ''} ${x.t === 'number' ? 'inputmode="decimal"' : ''} ${x.af ? 'autofocus' : ''}>${hint}</label>`;
   }).join('');
@@ -1364,11 +1417,26 @@ function form({ title, fields, values = {}, onSave, onDelete, delLabel = 'Elimin
     <div class="actions full">${onDelete ? `<button class="btn danger left" type="button" data-act="formDelete">${delLabel}</button>` : ''}<button class="btn" type="button" data-act="close">Annulla</button><button class="btn primary" type="submit">${saveLabel}</button></div></form>`, fields.length > 6);
   formHandler = { onSave, onDelete, fields };
 }
+/* date scritte come gg/mm/aaaa, salvate come aaaa-mm-gg */
+const isoToDmy = v => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(v || '')); return m ? `${m[3]}/${m[2]}/${m[1]}` : ''; };
+function dmyToIso(v) {
+  v = String(v || '').trim(); if (!v) return '';
+  const m = /^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/.exec(v); if (!m) return null;
+  const d = +m[1], mo = +m[2], y = +m[3]; const dt = new Date(y, mo - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d || y < 1900 || dt > new Date()) return null;
+  return `${y}-${pad(mo)}-${pad(d)}`;
+}
+document.addEventListener('input', e => {
+  const t = e.target; if (!t.dataset || !t.dataset.dmy) return;
+  const dg = t.value.replace(/\D/g, '').slice(0, 8);
+  const nv = dg.length > 4 ? `${dg.slice(0, 2)}/${dg.slice(2, 4)}/${dg.slice(4)}` : dg.length > 2 ? `${dg.slice(0, 2)}/${dg.slice(2)}` : dg;
+  if (nv !== t.value) t.value = nv;
+});
 function readForm(el, fields) {
   const o = {};
   for (const x of fields) {
     const i = el.elements[x.k]; if (!i) continue;
-    o[x.k] = x.t === 'check' ? i.checked : x.t === 'number' ? num(i.value) : i.value.trim();
+    o[x.k] = x.t === 'check' ? i.checked : x.t === 'number' ? num(i.value) : x.t === 'dmy' ? dmyToIso(i.value) : i.value.trim();
   }
   return o;
 }
@@ -1390,13 +1458,15 @@ function formCliente(c, after) {
     fields: [
       { k: 'nome', l: 'Nome', req: true, af: true }, { k: 'cognome', l: 'Cognome' },
       { k: 'telefono', l: 'Cellulare', t: 'tel', ph: '333 123 4567' }, { k: 'email', l: 'Email', t: 'email' },
-      { k: 'compleanno', l: 'Compleanno', t: 'date' }, { k: 'testCutaneo', l: 'Ultima prova di tolleranza', t: 'date', hint: 'test cutaneo prima del colore' },
+      { k: 'compleanno', l: 'Data di nascita', t: 'dmy', hint: 'gg/mm/aaaa, per gli auguri' }, { k: 'testCutaneo', l: 'Ultima prova di tolleranza', t: 'dmy', hint: 'gg/mm/aaaa, test cutaneo prima del colore' },
       ...(cfg.usaAllergie ? [{ k: 'avvertenze', l: 'Allergie o reazioni ai prodotti', t: 'area', full: true, hint: 'È un dato sanitario: annotalo solo se la cliente ha firmato il consenso scritto.' }] : []),
       { k: 'note', l: 'Note', t: 'area', full: true, ph: 'tipo di capello, preferenze, come le piace la piega…' },
       { k: 'consenso', l: 'Ha firmato il consenso ai messaggi promozionali', hint: 'offerte, auguri, "ti aspettiamo". I promemoria degli appuntamenti si mandano a tutte.', t: 'check' },
     ],
     onSave: v => {
       if (!v.nome) return 'Scrivi almeno il nome.';
+      if (v.compleanno === null) return 'Data di nascita non valida: scrivila come gg/mm/aaaa, per esempio 12/03/1978.';
+      if (v.testCutaneo === null) return 'Data della prova non valida: scrivila come gg/mm/aaaa.';
       const row = Object.assign({}, c, v);
       if (v.consenso && !bool(c.consenso)) row.consensoData = todayStr();
       if (!v.consenso) row.consensoData = '';
@@ -1569,8 +1639,8 @@ const ACT = {
   togliRiga: (el) => { cart.righe.splice(+el.dataset.i, 1); refreshCart(); },
   svuota: () => { cart = newCart(cart.clienteId); render(); },
   metodo: (el) => { cart.metodo = el.dataset.v; refreshCart(); },
-  scegliCliente: (el) => { cart.clienteId = el.dataset.id; cart.cq = ''; refreshCart(); },
-  togliCliente: () => { cart.clienteId = ''; cart.formula = ''; refreshCart(); },
+  scegliCliente: (el) => { cart.clienteId = el.dataset.id; cart.cq = ''; refreshCart(); if (cart.tab === 'servizi') { const cat = $('#catalogo'); if (cat) cat.innerHTML = catalogo(); } },
+  togliCliente: () => { cart.clienteId = ''; cart.formula = ''; refreshCart(); const cat = $('#catalogo'); if (cat) cat.innerHTML = catalogo(); },
   salvaVendita: () => salvaVendita(),
   toReceipt: () => $('#receipt')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
   annullaVendita: (el) => { const id = el.dataset.id; confirmBox('La vendita viene tolta dall\'app e i prodotti tornano in magazzino. Ricordati di annullare lo scontrino anche sul registratore, se l\'hai già emesso.', 'Annulla vendita', () => {
@@ -1771,12 +1841,12 @@ function apptBlock(it, from) {
 
 /* ---------- Modulo appuntamento ---------- */
 let af = null;
-function apptForm(a, defaults = {}) {
+function apptForm(a, defaults = {}, opts = {}) {
   const isNew = !a;
   const base = a ? Object.assign({}, a) : Object.assign({ id: uid(), data: agendaDay, ora: '', durata: 0, clienteId: '', operatoreId: operatori()[0]?.id || '', servizi: '', stato: 'prenotato', venditaId: '', note: '', creato: localISO() }, defaults);
   if (!base.ora) { const now = hm2m(localISO().slice(11, 16)); const st = base.data === todayStr() ? Math.max(hm2m(cfg.apertura), Math.ceil(now / SLOT) * SLOT) : hm2m(cfg.apertura); base.ora = m2hm(Math.min(st, hm2m(cfg.chiusura) - SLOT)); }
-  af = { a: base, isNew, sel: String(base.servizi || '').split(',').filter(Boolean), cq: '', nuovo: null, durManual: !isNew && num(base.durata) !== sumDur(String(base.servizi || '').split(',').filter(Boolean)), forced: false };
-  renderApptForm();
+  af = { a: base, isNew, sel: String(base.servizi || '').split(',').filter(Boolean), cq: '', nuovo: null, durManual: !isNew && num(base.durata) !== sumDur(String(base.servizi || '').split(',').filter(Boolean)), forced: false, conferma: !!opts.conferma, edit: false };
+  renderApptForm(true);
 }
 const sumDur = ids => ids.reduce((x, id) => x + num(derive().by.Servizi.get(id)?.durata), 0);
 function timeOptions(cur) {
@@ -1785,8 +1855,10 @@ function timeOptions(cur) {
   if (cur && !out.includes(cur)) { out.push(cur); out.sort(); }
   return out.map(t => `<option value="${t}" ${t === cur ? 'selected' : ''}>${t}</option>`).join('');
 }
-function renderApptForm() {
+function renderApptForm(first = false) {
   const a = af.a; const d = derive(); const c = d.by.Clienti.get(a.clienteId);
+  if (af.conferma && !af.edit) return renderConferma(first);
+  const uv = af.isNew ? ultimaVolta(a.clienteId) : null;
   const serv = data.Servizi.filter(x => bool(x.attivo) || af.sel.includes(x.id)).sort((x, y) => (CAT_SERVIZI.indexOf(x.categoria) - CAT_SERVIZI.indexOf(y.categoria)) || x.nome.localeCompare(y.nome, 'it'));
   const opsAll = operatori().concat(data.Operatori.filter(o => !bool(o.attivo) && o.id === a.operatoreId));
   openModal(`<h2>${af.isNew ? 'Nuovo appuntamento' : 'Modifica appuntamento'}</h2>
@@ -1798,15 +1870,58 @@ function renderApptForm() {
         : `<div class="search">${icon('search')}<input type="search" id="afCQ" data-filter="afCQ" placeholder="Cerca per nome o telefono" value="${h(af.cq)}" autocomplete="off"></div><div id="afRes">${afPicker()}</div>`}
     </div>
     <div class="full">${opPicker(a.operatoreId, 'afOp', { none: 'Da decidere' })}</div>
-    <div class="full"><div class="f" style="margin-bottom:6px">Servizi</div>${serv.length ? chipGroups(serv, a.operatoreId, 'afServ', af.sel) : '<span class="hint">Nessun servizio nel listino.</span>'}</div>
+    ${uv ? `<div class="full">${lastBox(uv, 'afRipeti', 'Ripeti')}</div>` : ''}
+    <div class="full"><div class="f" style="margin-bottom:6px">Servizi</div>${serv.length ? chipGroups(serv, a.operatoreId, 'afServ', af.sel, uv ? uv.ids : []) : '<span class="hint">Nessun servizio nel listino.</span>'}</div>
     <label class="f" for="afData">Giorno<input type="date" id="afData" data-af="1" value="${h(a.data)}"></label>
     <label class="f" for="afOra">Ora<select id="afOra" data-af="1">${timeOptions(a.ora)}</select></label>
     <label class="f" for="afDur">Durata (minuti)<input type="number" id="afDur" data-af="1" min="15" step="15" inputmode="numeric" value="${num(a.durata) || ''}"><span class="hint" id="afDurHint"></span></label>
     <label class="f full" for="afNote">Note<input type="text" id="afNote" data-af="1" value="${h(a.note)}" placeholder="es. vuole provare un castano più freddo"></label>
     <div class="full" id="afSum"></div>
     <div class="actions full">${!af.isNew ? `<button class="btn danger left" type="button" data-act="apptStato" data-id="${a.id}" data-v="annullato">Annulla appuntamento</button>` : ''}<button class="btn" type="button" data-act="close">Chiudi</button><button class="btn primary" type="submit" id="afSave">Salva</button></div>
-  </form>`, true);
+  </form>`, true, { noFocus: !first, keepScroll: !first });
   afRefresh();
+}
+/* Scheda di conferma dopo "Cerca posto": riepilogo grande, poi solo la cliente */
+function renderConferma(first) {
+  const a = af.a; const d = derive(); const c = d.by.Clienti.get(a.clienteId);
+  const o = d.by.Operatori.get(a.operatoreId);
+  const sv = apptServizi(a);
+  const pMin = sv.reduce((x, y) => x + num(y.prezzo), 0), pMax = sv.reduce((x, y) => x + Math.max(num(y.prezzo), num(y.prezzoMax)), 0);
+  const dd = parseD(a.data);
+  openModal(`<form class="stack" data-form="appt" novalidate style="gap:18px">
+    <div class="rp">
+      <div class="eyebrow">Stai prenotando</div>
+      <div class="rp-day">${h(cap(fday(a.data)))} ${dd.getFullYear()}</div>
+      <div class="rp-time">ore ${h(a.ora)} <span>fino alle ${m2hm(apptEnd(a))}</span></div>
+      <div class="rp-row">${o ? `<span class="cp-op still" style="--c:${h(o.colore)}"><i>${h(o.nome[0])}</i>${h(o.nome)}</span>` : '<span class="pill">da decidere</span>'}<span>${h(sv.map(x => x.nome).join(' + ') || 'nessun servizio')}</span><span class="num strong">${pMax > pMin ? `${eurShort(pMin)}–${eurShort(pMax)} €` : eur(pMin)}</span></div>
+      <button class="btn sm ghost" type="button" data-act="afEdit" style="align-self:flex-start">${icon('edit')}Cambia giorno, ora o servizi</button>
+    </div>
+    <div>
+      <div class="rp-q">Chi è la cliente?</div>
+      ${c ? `<div class="rp-client"><span class="avatar lg">${h(initials(c))}</span><div class="grow"><div class="strong" style="font-size:18px">${h(fullName(c))}</div><div class="small muted">${h(c.telefono || '')}</div></div><button class="btn sm" type="button" data-act="afTogliCliente">Cambia</button></div>`
+        : af.nuovo ? `<div class="form" style="gap:10px"><label class="f" for="afNome">Nome e cognome<input type="text" id="afNome" data-af="1" value="${h(af.nuovo.nome)}"></label><label class="f" for="afTel">Cellulare<input type="tel" id="afTel" data-af="1" value="${h(af.nuovo.tel)}" placeholder="333 123 4567"></label><p class="hint full" style="margin:0">Creo la scheda della nuova cliente insieme all'appuntamento. <button class="btn sm ghost" type="button" data-act="afTogliCliente">Cerca tra le clienti</button></p></div>`
+        : `<div class="search big">${icon('search')}<input type="search" id="afCQ" data-filter="afCQ" placeholder="Scrivi il nome o il telefono" value="${h(af.cq)}" autocomplete="off"></div><div id="afRes">${afPicker()}</div>`}
+    </div>
+    <label class="f" for="afNote">Note (facoltative)<input type="text" id="afNote" data-af="1" value="${h(a.note)}" placeholder="es. vuole provare un castano più freddo"></label>
+    <div id="afSum"></div>
+    <div class="actions">${CP ? `<button class="btn left" type="button" data-act="afBack">${icon('left')}Torna agli orari</button>` : ''}<button class="btn" type="button" data-act="close">Annulla</button><button class="btn primary" type="submit" id="afSave" style="min-height:50px;padding-inline:22px;font-size:16px">Conferma appuntamento</button></div>
+  </form>`, true, { noFocus: !first || !!c, keepScroll: !first });
+  afRefresh();
+}
+/* L'ultima visita della cliente: servizi fatti e chi li ha fatti */
+function ultimaVolta(clienteId) {
+  if (!clienteId) return null;
+  const d = derive();
+  const vs = d.vendC.get(clienteId) || [];
+  for (const v of vs) {
+    const ids = [...new Set((d.righe.get(v.id) || []).filter(r => r.tipo === 'servizio' && d.by.Servizi.get(r.refId)).map(r => r.refId))];
+    if (ids.length) return { data: v.data, ids, operatoreId: (d.righe.get(v.id) || []).find(r => r.tipo === 'servizio')?.operatoreId || v.operatoreId };
+  }
+  return null;
+}
+function lastBox(uv, act, label) {
+  const by = derive().by.Servizi;
+  return `<div class="lastbox"><div class="grow" style="min-width:0"><div class="eyebrow">L'ultima volta · ${h(fdate(uv.data))}${uv.operatoreId ? ` con ${h(opName(uv.operatoreId))}` : ''}</div><div class="strong">${h(uv.ids.map(id => by.get(id)?.nome).join(' + '))}</div></div><button class="btn primary sm" type="button" data-act="${act}">${label}</button></div>`;
 }
 function afPicker() {
   const q = af.cq.trim().toLowerCase();
@@ -1845,7 +1960,10 @@ function afRefresh() {
     ${out ? `<p class="hint" style="margin:8px 0 0">Fuori dall'orario dell'agenda (${h(cfg.apertura)}–${h(cfg.chiusura)}).</p>` : ''}
     ${pausa ? `<p class="hint" style="margin:8px 0 0">Cade nella pausa (${h(cfg.pausaDa)}–${h(cfg.pausaA)}).</p>` : ''}
     ${!isOpenDay(a.data) ? `<p class="hint" style="margin:8px 0 0">Attenzione: ${h(fday(a.data))} il salone è chiuso.</p>` : ''}`;
-  const btn = $('#afSave'); if (btn) btn.textContent = conf.length ? 'Salva comunque' : 'Salva';
+  if (af.conferma && !af.edit) {
+    sum.innerHTML = conf.length ? `<div class="banner" style="margin:0"><div><b>${h(opName(a.operatoreId))} ha già un appuntamento:</b> ${conf.map(b => `${h(fullName(derive().by.Clienti.get(b.clienteId)))} ${h(b.ora)}–${m2hm(apptEnd(b))}`).join(', ')}.</div></div>` : '';
+  }
+  const btn = $('#afSave'); if (btn) btn.textContent = af.conferma && !af.edit ? (conf.length ? 'Conferma comunque' : 'Conferma appuntamento') : conf.length ? 'Salva comunque' : 'Salva';
 }
 async function saveAppt() {
   afRead(); afRefresh();
@@ -2000,8 +2118,19 @@ ACT.wslot = (el, e) => {
   apptForm(null, { data: el.dataset.d, ora: m2hm(m), operatoreId: el.dataset.op });
 };
 ACT.cercaPosto = () => cercaPosto();
-ACT.cpServ = el => { const id = el.dataset.id; CP.sel = CP.sel.includes(id) ? CP.sel.filter(x => x !== id) : CP.sel.concat(id); renderCerca(); };
-ACT.cpPrenota = el => { const [d, ora, op] = el.dataset.v.split('|'); closeModal(); apptForm(null, { data: d, ora, operatoreId: op, servizi: CP.sel.join(','), durata: CP.dur }); };
+ACT.cpServ = el => {
+  const id = el.dataset.id; const was = CP.sel.length;
+  CP.sel = CP.sel.includes(id) ? CP.sel.filter(x => x !== id) : CP.sel.concat(id);
+  if (!CP.sel.includes(id) && !CP.sel.length) CP.showTiles = true; else if (CP.sel.includes(id)) CP.showTiles = false;
+  // servizio da uomo → si seleziona da solo chi fa uomo (Enzo)
+  const by = derive().by.Servizi; const rep = new Set(CP.sel.map(x => by.get(x)?.reparto || 'tutti').filter(r => r !== 'tutti'));
+  const uomo = operatori().find(o => o.reparto === 'uomo');
+  if (rep.size === 1 && rep.has('uomo') && uomo && (!CP.op || CP.opAuto)) { CP.op = uomo.id; CP.opAuto = true; }
+  else if (CP.opAuto && !(rep.size === 1 && rep.has('uomo'))) { CP.op = ''; CP.opAuto = false; }
+  renderCerca();
+  if (CP.sel.includes(id)) setTimeout(() => { const dl = $('.dialog'); if (dl) dl.scrollTo({ top: 0, behavior: 'smooth' }); }, 30);
+};
+ACT.cpPrenota = el => { const [d, ora, op] = el.dataset.v.split('|'); closeModal(); apptForm(null, { data: d, ora, operatoreId: op, servizi: CP.sel.join(','), durata: sumDur(CP.sel) }, { conferma: true }); };
 ACT.agendaShift = el => { agendaDay = addDays(agendaDay, +el.dataset.v); render(); };
 ACT.agendaDay = el => { agendaDay = el.dataset.v; render(); };
 ACT.nuovoAppt = () => apptForm(null, { data: agendaDay });
@@ -2044,7 +2173,7 @@ function promemoriaPanel(fromDay) {
   </div></section>`;
 }
 function agendaLegend() {
-  return `<div class="legend" aria-label="Legenda"><span><i class="lg lg-pren"></i>prenotata</span><span><i class="lg lg-arr"></i>arrivata</span><span><i class="lg lg-fatto"></i>incassata</span>${cfg.usaPosa ? `<span><i class="lg lg-posa"></i>posa: si può prendere un'altra cliente</span>` : ''}<span><i class="lg lg-off"></i>salone chiuso</span></div>`;
+  return `<div class="legend" aria-label="Legenda"><span><i class="lgd lgd-pren"></i>prenotata</span><span><i class="lgd lgd-arr"></i>arrivata</span><span><i class="lgd lgd-fatto"></i>incassata</span>${cfg.usaPosa ? `<span><i class="lgd lgd-posa"></i>posa: si può prendere un'altra cliente</span>` : ''}<span><i class="lgd lgd-off"></i>salone chiuso</span></div>`;
 }
 function vistaToggle() {
   return `<div class="seg vseg" role="group" aria-label="Vista"><button type="button" data-act="vista" data-v="settimana" aria-pressed="${agendaVista === 'settimana'}">Settimana</button><button type="button" data-act="vista" data-v="giorno" aria-pressed="${agendaVista === 'giorno'}">Giorno</button></div>`;
@@ -2137,60 +2266,93 @@ function weekBlock(it, from, o) {
 }
 
 /* ---------- Cerca posto libero ---------- */
+/* Pensato per chi usa poco PC e tablet: un passo alla volta, tutto grande */
 let CP = null;
-function cercaPosto() { CP = { sel: [], dur: 60, op: '', from: todayStr(), days: 4 }; renderCerca(); }
-function slotsLiberi() {
-  const dur = CP.sel.length ? sumDur(CP.sel) : CP.dur;
+function cercaPosto() { CP = { sel: [], op: '', opAuto: false, from: todayStr(), nDays: 10, day: '', q: '' }; renderCerca(true); }
+function cpOps() {
   const by = derive().by.Servizi;
   const need = new Set(CP.sel.map(id => by.get(id)?.reparto || 'tutti').filter(r => r !== 'tutti'));
-  // con "Chiunque": per servizi da uomo propone solo chi fa uomo, per quelli da donna chi fa donna
-  const ops = operatori().filter(o => CP.op ? o.id === CP.op : !(need.size === 1 && o.reparto !== 'tutti' && !need.has(o.reparto)));
+  // con "Chiunque": per servizi da uomo solo chi fa uomo, per quelli da donna solo chi fa donna
+  return operatori().filter(o => CP.op ? o.id === CP.op : !(need.size === 1 && o.reparto !== 'tutti' && !need.has(o.reparto)));
+}
+function slotsDay(d, dur, ops) {
   const t = todayStr(); const nowM = hm2m(localISO().slice(11, 16));
   const open = hm2m(cfg.apertura), close = hm2m(cfg.chiusura);
-  const out = [];
-  for (let i = 0; i < 60 && out.length < CP.days; i++) {
-    const d = addDays(CP.from, i); if (!isOpenDay(d)) continue;
-    const found = [];
-    for (let m = Math.ceil(open / 30) * 30; m + dur <= close; m += 30) { // ogni mezz'ora
-      if (d === t && m < nowM) continue;
-      if (inPausa(apptBusy({ ora: m2hm(m), durata: dur, servizi: CP.sel.join(',') }))) continue;
-      const free = ops.filter(o => !conflicts({ id: '_cp', data: d, ora: m2hm(m), durata: dur, operatoreId: o.id, servizi: CP.sel.join(','), stato: 'prenotato' }).length);
-      if (free.length) found.push({ m, free });
-    }
-    if (found.length) out.push({ d, found });
+  const found = [];
+  for (let m = Math.ceil(open / 30) * 30; m + dur <= close; m += 30) { // ogni mezz'ora
+    if (d === t && m < nowM) continue;
+    if (inPausa(apptBusy({ ora: m2hm(m), durata: dur, servizi: CP.sel.join(',') }))) continue;
+    const free = ops.filter(o => !conflicts({ id: '_cp', data: d, ora: m2hm(m), durata: dur, operatoreId: o.id, servizi: CP.sel.join(','), stato: 'prenotato' }).length);
+    if (free.length) found.push({ m, free });
   }
-  return { dur, out, ops };
+  return found;
+}
+function cpGiorni(dur) {
+  const ops = cpOps(); const out = [];
+  for (let i = 0; i < 120 && out.length < CP.nDays; i++) {
+    const d = addDays(CP.from, i); if (!isOpenDay(d)) continue;
+    out.push({ d, found: slotsDay(d, dur, ops) });
+  }
+  return out;
 }
 const FASCE = [['Mattina', 0, 13 * 60 + 30], ['Pomeriggio', 13 * 60 + 30, 18 * 60], ['Sera', 18 * 60, 24 * 60]];
-function renderCerca() {
-  const serv = data.Servizi.filter(x => bool(x.attivo));
+const cpPerson = (o, v) => `<button type="button" class="cp-op" data-act="cpPrenota" data-v="${v}|${o.id}" style="--c:${h(o.colore)}"><i>${h((o.nome || '?')[0])}</i>${h(o.nome)}</button>`;
+function cpTiles() {
+  const q = (CP.q || '').trim().toLowerCase();
+  const list = data.Servizi.filter(x => bool(x.attivo) && (!q || x.nome.toLowerCase().includes(q)));
+  if (!list.length) return `<div class="empty">Nessun trattamento con questo nome.</div>`;
+  const groups = servGroups(list, CP.op);
+  return groups.map(([r, items]) => `${groups.length > 1 ? `<div class="rephead">${h(REPARTI[r])}</div>` : ''}<div class="cp-tiles">${items.map(x => `<button type="button" class="cp-tile" data-act="cpServ" data-id="${x.id}" aria-pressed="${CP.sel.includes(x.id)}"><span class="ck">${icon('check')}</span><b>${h(x.nome)}</b><small>${durTxt(num(x.durata))} · ${prezzoTxt(x)}</small></button>`).join('')}</div>`).join('');
+}
+function renderCerca(first = false) {
   const by = derive().by.Servizi;
   CP.sel.sort((x, y) => ORDINE_CAT.indexOf(by.get(x)?.categoria) - ORDINE_CAT.indexOf(by.get(y)?.categoria));
-  const { dur, out } = slotsLiberi();
-  const one = !!CP.op;
-  const pers = o => `<button type="button" class="cp-op" data-act="cpPrenota" data-v="{V}|${o.id}" style="--c:${h(o.colore)}"><i>${h((o.nome || '?')[0])}</i>${h(o.nome)}</button>`;
-  const first = out[0]?.found[0];
-  const firstTxt = first ? `${cap(giornoTxt(out[0].d))} alle ${m2hm(first.m)}` : '';
-  const dayBlock = ({ d, found }) => `<section class="cp-day">
-      <h3 class="cp-dayh">${h(cap(giornoTxt(d)))}${giornoTxt(d) === fday(d) ? '' : ` <span>${h(fday(d))}</span>`}<em>${found.length} orar${found.length === 1 ? 'io' : 'i'}</em></h3>
-      ${FASCE.map(([nome, a, b]) => { const f = found.filter(x => x.m >= a && x.m < b); if (!f.length) return '';
+  const dur = sumDur(CP.sel);
+  const step = (n, title, extra = '') => `<div class="cp-step"><span class="cp-n">${n}</span><span class="cp-st">${title}</span>${extra}</div>`;
+  let body = '';
+  if (CP.sel.length) {
+    const giorni = cpGiorni(dur);
+    const withSlots = giorni.filter(g => g.found.length);
+    if (!giorni.some(g => g.d === CP.day && g.found.length)) CP.day = withSlots[0]?.d || '';
+    const firstDay = withSlots[0]; const fs = firstDay?.found[0];
+    const one = !!CP.op;
+    const cur = giorni.find(g => g.d === CP.day);
+    const enzo = CP.opAuto && derive().by.Operatori.get(CP.op);
+    body = `
+    <section class="cp-sec">${step(2, 'Con chi?')}
+      ${opPicker(CP.op, 'cpOp', { none: 'Chiunque', label: '' })}
+      ${enzo ? `<p class="hint" style="margin:6px 0 0">Ho scelto ${h(enzo.nome)} perché è un servizio da uomo.</p>` : ''}
+    </section>
+    ${fs ? `<div class="cp-first"><div><div class="eyebrow">Primo posto libero</div><div class="cp-first-t">${h(cap(giornoTxt(firstDay.d)))}${giornoTxt(firstDay.d) === fday(firstDay.d) ? '' : ` <span class="muted" style="font-size:15px">${h(fday(firstDay.d))}</span>`} alle ${m2hm(fs.m)}</div></div><div class="cp-ops">${fs.free.map(o => cpPerson(o, `${firstDay.d}|${m2hm(fs.m)}`)).join('')}</div></div>` : ''}
+    <section class="cp-sec">${step(3, 'Che giorno?')}
+      <div class="cp-days">${giorni.map(g => { const dd = parseD(g.d); const n = g.found.length; return `<button type="button" class="cp-day-b ${g.d === todayStr() ? 'today' : ''}" data-act="cpDay" data-v="${g.d}" aria-pressed="${g.d === CP.day}" ${n ? '' : 'disabled'}><span class="g">${g.d === todayStr() ? 'oggi' : g.d === addDays(todayStr(), 1) ? 'domani' : GIORNI[dd.getDay()]}</span><span class="n">${dd.getDate()}</span><span class="m">${MESI[dd.getMonth()]}</span><span class="c">${n ? `${n} orari` : 'pieno'}</span></button>`; }).join('')}
+        <button type="button" class="cp-day-b more" data-act="cpMore"><span class="n">+</span><span class="c">altri giorni</span></button></div>
+    </section>
+    <section class="cp-sec" id="cpStep4">${step(4, 'A che ora?', cur ? `<span class="cp-sel">${h(cap(fday(cur.d)))}</span>` : '')}
+      ${cur && cur.found.length ? FASCE.map(([nome, a, b]) => { const f = cur.found.filter(x => x.m >= a && x.m < b); if (!f.length) return '';
         return `<div class="cp-fascia"><div class="cp-fl">${nome}</div>${one
-          ? `<div class="cp-times">${f.map(x => `<button type="button" class="cp-time" data-act="cpPrenota" data-v="${d}|${m2hm(x.m)}|${x.free[0].id}">${m2hm(x.m)}</button>`).join('')}</div>`
-          : `<div class="cp-rows">${f.map(x => `<div class="cp-row"><span class="cp-t">${m2hm(x.m)}</span><span class="cp-ops">${x.free.map(o => pers(o).replace('{V}', `${d}|${m2hm(x.m)}`)).join('')}</span></div>`).join('')}</div>`}</div>`; }).join('')}
+          ? `<div class="cp-times">${f.map(x => `<button type="button" class="cp-time" data-act="cpPrenota" data-v="${cur.d}|${m2hm(x.m)}|${x.free[0].id}">${m2hm(x.m)}</button>`).join('')}</div>`
+          : `<div class="cp-rows">${f.map(x => `<div class="cp-row"><span class="cp-t">${m2hm(x.m)}</span><span class="cp-ops">${x.free.map(o => cpPerson(o, `${cur.d}|${m2hm(x.m)}`)).join('')}</span></div>`).join('')}</div>`}</div>`; }).join('')
+        : `<div class="empty">Nessun posto libero nei giorni mostrati. Prova "altri giorni".</div>`}
+      <p class="hint" style="margin:10px 0 0">${one ? 'Tocca l\'orario per prenotare.' : 'Tocca il nome di chi farà il lavoro, accanto all\'orario.'}</p>
     </section>`;
+  }
+  const scelti = CP.sel.map(id => by.get(id)).filter(Boolean);
   openModal(`<h2>Cerca posto libero</h2>
-    <div><div class="f" style="margin-bottom:6px">1 · Cosa deve fare</div>${chipGroups(serv, CP.op, 'cpServ', CP.sel)}</div>
-    ${opPicker(CP.op, 'cpOp', { none: 'Chiunque', label: '2 · Con chi' })}
-    <div class="form" style="gap:10px">
-      <label class="f" for="cpFrom">A partire da<input type="date" id="cpFrom" data-cp="from" value="${CP.from}"></label>
-      ${CP.sel.length ? `<div class="f">Durata<div class="cp-dur">${durTxt(dur)}</div></div>` : `<label class="f" for="cpDur">Durata (minuti)<input type="number" id="cpDur" data-cp="dur" min="15" step="15" value="${CP.dur}"></label>`}
-    </div>
-    ${first ? `<div class="cp-first"><div><div class="eyebrow">Primo posto libero</div><div class="cp-first-t">${h(firstTxt)}</div></div><div class="cp-ops">${first.free.map(o => pers(o).replace('{V}', `${out[0].d}|${m2hm(first.m)}`)).join('')}</div></div>
-      <p class="hint" style="margin:0">${one ? 'Tocca un orario per prenotare.' : 'Tocca il nome di chi farà il lavoro per prenotare a quell\'ora.'}</p>` : ''}
-    <div class="cp-res">${out.length ? out.map(dayBlock).join('') : `<div class="empty">Nessun posto libero nelle prossime settimane con questi criteri.</div>`}</div>
-    <div class="actions">${out.length >= CP.days ? `<button class="btn left" type="button" data-act="cpMore">Mostra altri giorni</button>` : ''}<button class="btn" type="button" data-act="close">Chiudi</button></div>`, true);
+    <section class="cp-sec">${step(1, 'Che trattamento?', scelti.length ? `<button class="btn sm ghost" type="button" data-act="cpClear">Togli tutto</button>` : '')}
+      ${scelti.length ? `<div class="cp-chosen">${scelti.map(x => `<button type="button" class="chip" data-act="cpServ" data-id="${x.id}" aria-pressed="true">${h(x.nome)} ✕</button>`).join('')}<span class="small muted">${durTxt(dur)} in tutto</span></div>` : ''}
+      ${scelti.length && !CP.showTiles ? `<button class="btn" type="button" data-act="cpAltro" style="align-self:flex-start">${icon('plus')}Aggiungi un altro trattamento</button>` : `
+      <div class="search big" style="margin:10px 0">${icon('search')}<input type="search" id="cpQ" placeholder="Scrivi per cercare, es. piega" value="${h(CP.q)}" autocomplete="off"></div>
+      <div id="cpTiles">${cpTiles()}</div>`}
+    </section>
+    ${CP.sel.length ? body : `<p class="cp-hint">Tocca uno o più trattamenti qui sopra: poi ti mostro i giorni e gli orari liberi.</p>`}
+    <div class="actions"><button class="btn" type="button" data-act="close">Chiudi</button></div>`, true, { noFocus: true, keepScroll: !first });
 }
-ACT.cpMore = () => { const sc = $('.dialog')?.scrollTop || 0; CP.days += 4; renderCerca(); const dl = $('.dialog'); if (dl) dl.scrollTop = sc; };
+document.addEventListener('input', e => { if (e.target.id === 'cpQ' && CP) { CP.q = e.target.value; $('#cpTiles').innerHTML = cpTiles(); } });
+ACT.cpMore = () => { CP.nDays += 10; renderCerca(); };
+ACT.cpAltro = () => { CP.showTiles = true; renderCerca(); };
+ACT.cpDay = el => { CP.day = el.dataset.v; renderCerca(); setTimeout(() => $('#cpStep4')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 30); };
+ACT.cpClear = () => { CP.sel = []; CP.showTiles = true; if (CP.opAuto) { CP.op = ''; CP.opAuto = false; } renderCerca(); };
 document.addEventListener('change', e => {
   const k = e.target.dataset?.cp; if (!k || !CP) return;
   if (k === 'op') CP.op = e.target.value;
@@ -2220,13 +2382,21 @@ document.addEventListener('change', e => {
 
 
 /* Servizi in chip, raggruppati: prima quelli del reparto di chi lavora */
-function chipGroups(list, opId, act, sel) {
-  const groups = servGroups(list, opId);
+function chipGroups(list, opId, act, sel, first = []) {
+  const firstSet = new Set(first);
+  const groups = servGroups(list.filter(x => !firstSet.has(x.id)), opId);
   const o = derive().by.Operatori.get(opId);
-  return `<div class="chips">${groups.map(([r, items], gi) => `${groups.length > 1 ? `<span class="chips-label ${gi === 0 && o && o.reparto === r && r !== 'tutti' ? 'mine' : ''}">${h(REPARTI[r])}${gi === 0 && o && o.reparto === r && r !== 'tutti' ? ` · i servizi di ${h(o.nome)}` : ''}</span>` : ''}${items.map(x => `<button class="chip" type="button" data-act="${act}" data-id="${x.id}" aria-pressed="${sel.includes(x.id)}">${h(x.nome)}</button>`).join('')}`).join('')}</div>`;
+  const by = derive().by.Servizi;
+  const top = first.map(id => by.get(id)).filter(Boolean);
+  const chip = x => `<button class="chip" type="button" data-act="${act}" data-id="${x.id}" aria-pressed="${sel.includes(x.id)}">${h(x.nome)}</button>`;
+  return `<div class="chips">${top.length ? `<span class="chips-label mine">Come l'ultima volta</span>${top.map(chip).join('')}` : ''}${groups.map(([r, items], gi) => `${groups.length > 1 || top.length ? `<span class="chips-label ${gi === 0 && !top.length && o && o.reparto === r && r !== 'tutti' ? 'mine' : ''}">${h(REPARTI[r])}${gi === 0 && !top.length && o && o.reparto === r && r !== 'tutti' ? ` · i servizi di ${h(o.nome)}` : ''}</span>` : ''}${items.map(chip).join('')}`).join('')}</div>`;
 }
 ACT.afOp = el => { afRead(); af.a.operatoreId = el.dataset.id; renderApptForm(); };
-ACT.cpOp = el => { CP.op = el.dataset.id; renderCerca(); };
+ACT.cpOp = el => { CP.op = el.dataset.id; CP.opAuto = false; renderCerca(); };
+ACT.afEdit = () => { afRead(); af.edit = true; renderApptForm(); };
+ACT.afBack = () => { closeModal(); if (CP) renderCerca(true); };
+ACT.afRipeti = () => { afRead(); const uv = ultimaVolta(af.a.clienteId); if (!uv) return; af.sel = [...uv.ids]; if (operatori().some(o => o.id === uv.operatoreId)) af.a.operatoreId = uv.operatoreId; af.durManual = false; renderApptForm(); };
+ACT.cassaRipeti = () => { const uv = ultimaVolta(cart.clienteId); if (!uv) return; if (operatori().some(o => o.id === uv.operatoreId)) cart.operatoreId = uv.operatoreId; const by = derive().by.Servizi; uv.ids.forEach(id => { const sv = by.get(id); cart.righe.push({ tipo: 'servizio', refId: sv.id, descrizione: sv.nome, qta: 1, prezzo: num(sv.prezzo), operatoreId: cart.operatoreId }); }); refreshCart(); const cat = $('#catalogo'); if (cat) cat.innerHTML = catalogo(); toast('Aggiunti i servizi dell\'ultima volta'); };
 ACT.cassaOp = el => {
   cart.operatoreId = el.dataset.id;
   cart.righe.forEach(r => { if (r.tipo === 'servizio') r.operatoreId = el.dataset.id; });
