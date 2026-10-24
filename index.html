@@ -1639,7 +1639,7 @@ const ACT = {
   togliRiga: (el) => { cart.righe.splice(+el.dataset.i, 1); refreshCart(); },
   svuota: () => { cart = newCart(cart.clienteId); render(); },
   metodo: (el) => { cart.metodo = el.dataset.v; refreshCart(); },
-  scegliCliente: (el) => { cart.clienteId = el.dataset.id; cart.cq = ''; refreshCart(); if (cart.tab === 'servizi') { const cat = $('#catalogo'); if (cat) cat.innerHTML = catalogo(); } },
+  scegliCliente: (el) => { cart.clienteId = el.dataset.id; cart.cq = ''; if (!cart.opTouched && typeof abituale === 'function') { const ab = abituale(el.dataset.id); if (ab && ab !== cart.operatoreId) { cart.operatoreId = ab; cart.righe.forEach(r => { if (r.tipo === 'servizio') r.operatoreId = ab; }); toast(`Di solito viene con ${opName(ab)}`); } } refreshCart(); if (cart.tab === 'servizi') { const cat = $('#catalogo'); if (cat) cat.innerHTML = catalogo(); } },
   togliCliente: () => { cart.clienteId = ''; cart.formula = ''; refreshCart(); const cat = $('#catalogo'); if (cat) cat.innerHTML = catalogo(); },
   salvaVendita: () => salvaVendita(),
   toReceipt: () => $('#receipt')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
@@ -1839,13 +1839,51 @@ function apptBlock(it, from) {
     <span class="an">${h(fullName(c))}</span>${hgt > 44 ? `<span class="as">${h(sv)}</span>` : ''}</button>`;
 }
 
+
+/* ---------- Suggerimenti intelligenti ---------- */
+/* 1. Con chi viene di solito: la persona più frequente nelle ultime visite */
+function abituale(clienteId) {
+  const d = derive(); const cnt = {};
+  (d.vendC.get(clienteId) || []).slice(0, 6).forEach(v => {
+    const r = (d.righe.get(v.id) || []).find(x => x.tipo === 'servizio');
+    const op = r?.operatoreId || v.operatoreId; if (op) cnt[op] = (cnt[op] || 0) + 1;
+  });
+  const best = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+  return best && operatori().some(o => o.id === best[0]) ? best[0] : '';
+}
+/* 3. Tinte usate l'ultima volta per lei: avvisa se in magazzino non bastano */
+function tinteAvvisi(clienteId, servIds) {
+  const d = derive();
+  if (!clienteId || !servIds.some(id => ['Colore', 'Schiaritura'].includes(d.by.Servizi.get(id)?.categoria))) return [];
+  for (const v of d.vendC.get(clienteId) || []) {
+    const cons = (d.righe.get(v.id) || []).filter(r => r.tipo === 'consumo' && d.by.Prodotti.get(r.refId));
+    if (!cons.length) continue;
+    return cons.map(r => { const p = d.by.Prodotti.get(r.refId); const g = giacenza(p.id); const need = num(r.qta); return { p, g, need, poca: g < need, bassa: g < need * 2 || prodLow(p) }; }).filter(x => x.bassa && bool(x.p.attivo));
+  }
+  return [];
+}
+function tinteHtml(list) {
+  if (!list.length) return '';
+  return `<div class="banner" style="margin:10px 0 0"><div><b>${list.some(x => x.poca) ? 'Tinta insufficiente' : 'Tinta in esaurimento'}.</b> L'ultima volta per lei: ${list.map(x => `${h(x.p.nome)} ${fq(x.need)} ${h(x.p.unita)} (in magazzino ${fq(x.g)} ${h(x.p.unita)})`).join(', ')}. Conviene riordinarla prima dell'appuntamento.</div></div>`;
+}
+/* 5. Clienti che non si presentano spesso */
+function nonVenute(clienteId) {
+  const lim = addDays(todayStr(), -365);
+  return data.Appuntamenti.filter(a => a.clienteId === clienteId && a.stato === 'nonvenuta' && a.data >= lim).length;
+}
+function saltaHtml(clienteId, small = false) {
+  const n = nonVenute(clienteId); if (n < 2) return '';
+  return small ? `<span class="pill danger">non si presenta spesso</span>` : `<div class="pill danger" style="margin-top:8px;white-space:normal;padding:6px 12px">Non si è presentata ${n} volte nell'ultimo anno: meglio chiamarla il giorno prima.</div>`;
+}
+
 /* ---------- Modulo appuntamento ---------- */
 let af = null;
 function apptForm(a, defaults = {}, opts = {}) {
   const isNew = !a;
   const base = a ? Object.assign({}, a) : Object.assign({ id: uid(), data: agendaDay, ora: '', durata: 0, clienteId: '', operatoreId: operatori()[0]?.id || '', servizi: '', stato: 'prenotato', venditaId: '', note: '', creato: localISO() }, defaults);
   if (!base.ora) { const now = hm2m(localISO().slice(11, 16)); const st = base.data === todayStr() ? Math.max(hm2m(cfg.apertura), Math.ceil(now / SLOT) * SLOT) : hm2m(cfg.apertura); base.ora = m2hm(Math.min(st, hm2m(cfg.chiusura) - SLOT)); }
-  af = { a: base, isNew, sel: String(base.servizi || '').split(',').filter(Boolean), cq: '', nuovo: null, durManual: !isNew && num(base.durata) !== sumDur(String(base.servizi || '').split(',').filter(Boolean)), forced: false, conferma: !!opts.conferma, edit: false };
+  if (isNew && base.clienteId && !defaults.operatoreId && !opts.conferma) { const ab = abituale(base.clienteId); if (ab) { base.operatoreId = ab; opts.opAuto = ab; } }
+  af = { a: base, isNew, sel: String(base.servizi || '').split(',').filter(Boolean), cq: '', nuovo: null, durManual: !isNew && num(base.durata) !== sumDur(String(base.servizi || '').split(',').filter(Boolean)), forced: false, conferma: !!opts.conferma, edit: false, opAuto: opts.opAuto || '', opTouched: false };
   renderApptForm(true);
 }
 const sumDur = ids => ids.reduce((x, id) => x + num(derive().by.Servizi.get(id)?.durata), 0);
@@ -1865,11 +1903,11 @@ function renderApptForm(first = false) {
   <form class="form" data-form="appt" novalidate>
     <div class="full">
       <div class="f" style="margin-bottom:5px">Cliente</div>
-      ${c ? `<div class="row"><span class="avatar">${h(initials(c))}</span><div class="grow"><div class="strong">${h(fullName(c))}</div><div class="small muted">${h(c.telefono || '')}</div></div><button class="btn sm ghost" type="button" data-act="afTogliCliente">Cambia</button></div>${cfg.usaAllergie && c.avvertenze ? `<div class="pill danger" style="margin-top:8px;white-space:normal">Allergie: ${h(c.avvertenze)}</div>` : ''}`
+      ${c ? `<div class="row"><span class="avatar">${h(initials(c))}</span><div class="grow"><div class="strong">${h(fullName(c))}</div><div class="small muted">${h(c.telefono || '')}</div></div><button class="btn sm ghost" type="button" data-act="afTogliCliente">Cambia</button></div>${saltaHtml(c.id)}${cfg.usaAllergie && c.avvertenze ? `<div class="pill danger" style="margin-top:8px;white-space:normal">Allergie: ${h(c.avvertenze)}</div>` : ''}`
         : af.nuovo ? `<div class="form" style="gap:10px"><label class="f" for="afNome">Nome e cognome<input type="text" id="afNome" data-af="1" value="${h(af.nuovo.nome)}"></label><label class="f" for="afTel">Cellulare<input type="tel" id="afTel" data-af="1" value="${h(af.nuovo.tel)}" placeholder="333 123 4567"></label><p class="hint full" style="margin:0">Creo la scheda della nuova cliente insieme all'appuntamento. <button class="btn sm ghost" type="button" data-act="afTogliCliente">Cerca tra le clienti</button></p></div>`
         : `<div class="search">${icon('search')}<input type="search" id="afCQ" data-filter="afCQ" placeholder="Cerca per nome o telefono" value="${h(af.cq)}" autocomplete="off"></div><div id="afRes">${afPicker()}</div>`}
     </div>
-    <div class="full">${opPicker(a.operatoreId, 'afOp', { none: 'Da decidere' })}</div>
+    <div class="full">${opPicker(a.operatoreId, 'afOp', { none: 'Da decidere' })}${af.opAuto && af.opAuto === a.operatoreId ? `<p class="hint" style="margin:6px 0 0">Di solito viene con ${h(opName(af.opAuto))}.</p>` : ''}</div>
     ${uv ? `<div class="full">${lastBox(uv, 'afRipeti', 'Ripeti')}</div>` : ''}
     <div class="full"><div class="f" style="margin-bottom:6px">Servizi</div>${serv.length ? chipGroups(serv, a.operatoreId, 'afServ', af.sel, uv ? uv.ids : []) : '<span class="hint">Nessun servizio nel listino.</span>'}</div>
     <label class="f" for="afData">Giorno<input type="date" id="afData" data-af="1" value="${h(a.data)}"></label>
@@ -1898,7 +1936,7 @@ function renderConferma(first) {
     </div>
     <div>
       <div class="rp-q">Chi è la cliente?</div>
-      ${c ? `<div class="rp-client"><span class="avatar lg">${h(initials(c))}</span><div class="grow"><div class="strong" style="font-size:18px">${h(fullName(c))}</div><div class="small muted">${h(c.telefono || '')}</div></div><button class="btn sm" type="button" data-act="afTogliCliente">Cambia</button></div>`
+      ${c ? `<div class="rp-client"><span class="avatar lg">${h(initials(c))}</span><div class="grow"><div class="strong" style="font-size:18px">${h(fullName(c))}</div><div class="small muted">${h(c.telefono || '')}</div></div><button class="btn sm" type="button" data-act="afTogliCliente">Cambia</button></div>${saltaHtml(c.id)}${(() => { const ab = abituale(c.id); return ab && ab !== a.operatoreId ? `<p class="hint" style="margin:8px 0 0">Di solito viene con ${h(opName(ab))}.</p>` : ''; })()}`
         : af.nuovo ? `<div class="form" style="gap:10px"><label class="f" for="afNome">Nome e cognome<input type="text" id="afNome" data-af="1" value="${h(af.nuovo.nome)}"></label><label class="f" for="afTel">Cellulare<input type="tel" id="afTel" data-af="1" value="${h(af.nuovo.tel)}" placeholder="333 123 4567"></label><p class="hint full" style="margin:0">Creo la scheda della nuova cliente insieme all'appuntamento. <button class="btn sm ghost" type="button" data-act="afTogliCliente">Cerca tra le clienti</button></p></div>`
         : `<div class="search big">${icon('search')}<input type="search" id="afCQ" data-filter="afCQ" placeholder="Scrivi il nome o il telefono" value="${h(af.cq)}" autocomplete="off"></div><div id="afRes">${afPicker()}</div>`}
     </div>
@@ -1959,9 +1997,10 @@ function afRefresh() {
     ${conf.length ? `<div class="banner" style="margin:10px 0 0"><div><b>${h(opName(a.operatoreId))} ha già un appuntamento:</b> ${conf.map(b => `${h(fullName(derive().by.Clienti.get(b.clienteId)))} ${h(b.ora)}–${m2hm(apptEnd(b))}`).join(', ')}. Puoi salvare lo stesso.</div></div>` : ''}
     ${out ? `<p class="hint" style="margin:8px 0 0">Fuori dall'orario dell'agenda (${h(cfg.apertura)}–${h(cfg.chiusura)}).</p>` : ''}
     ${pausa ? `<p class="hint" style="margin:8px 0 0">Cade nella pausa (${h(cfg.pausaDa)}–${h(cfg.pausaA)}).</p>` : ''}
-    ${!isOpenDay(a.data) ? `<p class="hint" style="margin:8px 0 0">Attenzione: ${h(fday(a.data))} il salone è chiuso.</p>` : ''}`;
+    ${!isOpenDay(a.data) ? `<p class="hint" style="margin:8px 0 0">Attenzione: ${h(fday(a.data))} il salone è chiuso.</p>` : ''}
+    ${tinteHtml(tinteAvvisi(a.clienteId, af.sel))}`;
   if (af.conferma && !af.edit) {
-    sum.innerHTML = conf.length ? `<div class="banner" style="margin:0"><div><b>${h(opName(a.operatoreId))} ha già un appuntamento:</b> ${conf.map(b => `${h(fullName(derive().by.Clienti.get(b.clienteId)))} ${h(b.ora)}–${m2hm(apptEnd(b))}`).join(', ')}.</div></div>` : '';
+    sum.innerHTML = (conf.length ? `<div class="banner" style="margin:0"><div><b>${h(opName(a.operatoreId))} ha già un appuntamento:</b> ${conf.map(b => `${h(fullName(derive().by.Clienti.get(b.clienteId)))} ${h(b.ora)}–${m2hm(apptEnd(b))}`).join(', ')}.</div></div>` : '') + tinteHtml(tinteAvvisi(a.clienteId, af.sel));
   }
   const btn = $('#afSave'); if (btn) btn.textContent = af.conferma && !af.edit ? (conf.length ? 'Conferma comunque' : 'Conferma appuntamento') : conf.length ? 'Salva comunque' : 'Salva';
 }
@@ -2009,6 +2048,7 @@ function apptDetail(id) {
   openModal(`<div><div class="eyebrow">${h(cap(fday(a.data)))} · ${h(a.ora)}–${m2hm(apptEnd(a))}</div><h2>${h(fullName(c))}</h2>
       <div class="row small" style="margin-top:8px"><span class="pill ${sc}">${sl}</span><span class="muted"><span class="opdot" style="background:${h(opColor(a.operatoreId))}"></span> ${h(a.operatoreId ? opName(a.operatoreId) : 'da assegnare')}</span>${c?.telefono ? `<span class="muted num">${h(c.telefono)}</span>` : ''}</div></div>
     ${['prenotato', 'arrivata', 'fatto'].includes(a.stato) ? `<ol class="flow">${[['prenotato', 'Prenotata'], ['arrivata', 'Arrivata'], ['fatto', 'Incassata']].map(([k, l], i, arr) => { const cur = arr.findIndex(x => x[0] === a.stato); return `<li class="${i < cur ? 'done' : i === cur ? 'cur' : ''}"><span>${i < cur ? '✓' : i + 1}</span>${l}</li>`; }).join('')}</ol>` : ''}
+    ${c ? saltaHtml(c.id) : ''}
     ${cfg.usaAllergie && c?.avvertenze ? `<div class="pill danger" style="white-space:normal">Allergie: ${h(c.avvertenze)}</div>` : ''}
     <div>${sv.map(x => `<div class="rline" style="grid-template-columns:minmax(0,1fr) auto"><div><div class="nm">${h(x.nome)}</div><div class="sub">${durTxt(num(x.durata))}${cfg.usaPosa && num(x.posa) ? ` · posa ${num(x.posa)} min` : ''}</div></div><span class="num">${prezzoTxt(x)}</span></div>`).join('') || '<p class="muted" style="margin:0">Nessun servizio indicato.</p>'}</div>
     <div class="total"><span class="strong">Previsto</span><span class="v">${eur(apptPrezzo(a))}</span></div>
@@ -2150,7 +2190,7 @@ ACT.apptStato = el => {
   else doIt();
 };
 ACT.afServ = el => { afRead(); const id = el.dataset.id; af.sel = af.sel.includes(id) ? af.sel.filter(x => x !== id) : af.sel.concat(id); el.setAttribute('aria-pressed', af.sel.includes(id)); afRefresh(); };
-ACT.afCliente = el => { afRead(); af.a.clienteId = el.dataset.id; af.nuovo = null; renderApptForm(); };
+ACT.afCliente = el => { afRead(); af.a.clienteId = el.dataset.id; af.nuovo = null; if (af.isNew && !af.conferma && !af.opTouched) { const ab = abituale(el.dataset.id); if (ab) { af.a.operatoreId = ab; af.opAuto = ab; } } renderApptForm(); };
 ACT.afNuova = () => { afRead(); af.nuovo = { nome: af.cq.trim(), tel: '' }; renderApptForm(); setTimeout(() => $('#afTel')?.focus(), 40); };
 ACT.afTogliCliente = () => { afRead(); af.a.clienteId = ''; af.nuovo = null; af.cq = ''; renderApptForm(); };
 ACT.chiusuraStart = () => startChiusura();
@@ -2169,7 +2209,7 @@ function promemoriaPanel(fromDay) {
   const prom = apptsOf(tomorrow).filter(a => a.stato === 'prenotato');
   const sent = sentSet();
   return `<section class="panel prom-panel" style="margin-top:16px"><header><h2>Promemoria per ${h(giornoTxt(tomorrow))}</h2><span class="muted small">${prom.length ? `${prom.filter(a => sent.has(a.id)).length} di ${prom.length} inviati` : ''}</span></header><div class="body">
-    ${prom.length ? `<ul class="list">${prom.map(a => { const c = derive().by.Clienti.get(a.clienteId); const link = c ? waLink(c, cfg.msgPromemoria, { giorno: giornoTxt(a.data), ora: a.ora }) : ''; const done = sent.has(a.id); return `<li><div class="item" style="cursor:default"><span class="num strong" style="width:44px">${h(a.ora)}</span><div class="main"><div class="t">${h(fullName(c))}</div><div class="d">${h(c?.telefono || 'nessun telefono')}</div></div><div class="end">${link ? `<a class="btn sm ${done ? '' : 'wa'}" href="${h(link)}" target="_blank" rel="noopener" data-act="wa" data-sent="${a.id}">${done ? icon('check') + 'Inviato' : icon('wa') + 'Invia'}</a>` : '<span class="small muted">—</span>'}</div></div></li>`; }).join('')}</ul>` : `<div class="empty">Nessuna cliente prenotata per ${h(giornoTxt(tomorrow))}.</div>`}
+    ${prom.length ? `<ul class="list">${prom.map(a => { const c = derive().by.Clienti.get(a.clienteId); const link = c ? waLink(c, cfg.msgPromemoria, { giorno: giornoTxt(a.data), ora: a.ora }) : ''; const done = sent.has(a.id); return `<li><div class="item" style="cursor:default"><span class="num strong" style="width:44px">${h(a.ora)}</span><div class="main"><div class="t">${h(fullName(c))} ${c ? saltaHtml(c.id, true) : ''}</div><div class="d">${h(c?.telefono || 'nessun telefono')}</div></div><div class="end">${link ? `<a class="btn sm ${done ? '' : 'wa'}" href="${h(link)}" target="_blank" rel="noopener" data-act="wa" data-sent="${a.id}">${done ? icon('check') + 'Inviato' : icon('wa') + 'Invia'}</a>` : '<span class="small muted">—</span>'}</div></div></li>`; }).join('')}</ul>` : `<div class="empty">Nessuna cliente prenotata per ${h(giornoTxt(tomorrow))}.</div>`}
   </div></section>`;
 }
 function agendaLegend() {
@@ -2391,14 +2431,14 @@ function chipGroups(list, opId, act, sel, first = []) {
   const chip = x => `<button class="chip" type="button" data-act="${act}" data-id="${x.id}" aria-pressed="${sel.includes(x.id)}">${h(x.nome)}</button>`;
   return `<div class="chips">${top.length ? `<span class="chips-label mine">Come l'ultima volta</span>${top.map(chip).join('')}` : ''}${groups.map(([r, items], gi) => `${groups.length > 1 || top.length ? `<span class="chips-label ${gi === 0 && !top.length && o && o.reparto === r && r !== 'tutti' ? 'mine' : ''}">${h(REPARTI[r])}${gi === 0 && !top.length && o && o.reparto === r && r !== 'tutti' ? ` · i servizi di ${h(o.nome)}` : ''}</span>` : ''}${items.map(chip).join('')}`).join('')}</div>`;
 }
-ACT.afOp = el => { afRead(); af.a.operatoreId = el.dataset.id; renderApptForm(); };
+ACT.afOp = el => { afRead(); af.a.operatoreId = el.dataset.id; af.opTouched = true; af.opAuto = ''; renderApptForm(); };
 ACT.cpOp = el => { CP.op = el.dataset.id; CP.opAuto = false; renderCerca(); };
 ACT.afEdit = () => { afRead(); af.edit = true; renderApptForm(); };
 ACT.afBack = () => { closeModal(); if (CP) renderCerca(true); };
 ACT.afRipeti = () => { afRead(); const uv = ultimaVolta(af.a.clienteId); if (!uv) return; af.sel = [...uv.ids]; if (operatori().some(o => o.id === uv.operatoreId)) af.a.operatoreId = uv.operatoreId; af.durManual = false; renderApptForm(); };
 ACT.cassaRipeti = () => { const uv = ultimaVolta(cart.clienteId); if (!uv) return; if (operatori().some(o => o.id === uv.operatoreId)) cart.operatoreId = uv.operatoreId; const by = derive().by.Servizi; uv.ids.forEach(id => { const sv = by.get(id); cart.righe.push({ tipo: 'servizio', refId: sv.id, descrizione: sv.nome, qta: 1, prezzo: num(sv.prezzo), operatoreId: cart.operatoreId }); }); refreshCart(); const cat = $('#catalogo'); if (cat) cat.innerHTML = catalogo(); toast('Aggiunti i servizi dell\'ultima volta'); };
 ACT.cassaOp = el => {
-  cart.operatoreId = el.dataset.id;
+  cart.operatoreId = el.dataset.id; cart.opTouched = true;
   cart.righe.forEach(r => { if (r.tipo === 'servizio') r.operatoreId = el.dataset.id; });
   refreshCart();
   const cat = $('#catalogo'); if (cat) cat.innerHTML = catalogo();
@@ -2712,6 +2752,7 @@ function seedDemo() {
     .forEach(([ora, ci, sv, oi]) => mkAppt(nextDay, ora, ci, sv, oi));
   // qualche appuntamento passato non presentato
   mkAppt(dayShift(prevDay, -21), '10:00', 5, ['Piega'], 2, 'nonvenuta');
+  mkAppt(dayShift(prevDay, -50), '16:00', 5, ['Piega'], 2, 'nonvenuta');
   // giacenza iniziale calcolata in modo che oggi risulti quella voluta
   prods.forEach(p => {
     const used = d.Movimenti.filter(m => m.prodottoId === p.id).reduce((s, m) => s + m.qta, 0);
@@ -2720,7 +2761,7 @@ function seedDemo() {
   for (const k in d) d[k] = d[k].map(r => normRow(k, r));
   data = d; ver++;
   store.set(K.data, data);
-  meta.demo = true; meta.demoVer = 7; store.set(K.meta, meta);
+  meta.demo = true; meta.demoVer = 8; store.set(K.meta, meta);
   cart = newCart();
 }
 
@@ -2728,7 +2769,7 @@ function seedDemo() {
 (function boot() {
   const saved = store.get(K.data, null);
   if (saved && typeof saved === 'object') { data = emptyData(); for (const k in SCHEMA) data[k] = (saved[k] || []).map(r => normRow(k, r)); ver++; }
-  if (isDemo() && (!saved || meta.demoVer !== 7 || (!meta.demo && !data.Vendite.length && !data.Clienti.length))) seedDemo();
+  if (isDemo() && (!saved || meta.demoVer !== 8 || (!meta.demo && !data.Vendite.length && !data.Clienti.length))) seedDemo();
   if (!isDemo() && !cfg.pin) needLogin = true;
   cart = newCart();
   render();
