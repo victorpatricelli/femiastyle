@@ -546,6 +546,11 @@ table.t tr.click:hover td { background: var(--surface-2); }
 .debt .eyebrow { color: var(--danger); margin-bottom: 2px; }
 .debt-v { font-family: var(--f-display); font-size: 24px; color: var(--danger); }
 
+.cons-ed { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.cons-row { display: grid; grid-template-columns: minmax(0, 1fr) 96px 28px 32px; gap: 8px; align-items: center; }
+.cons-row select, .cons-row input { min-height: 40px !important; }
+.rline.cons .cons-sel { border: 0; background: transparent; padding: 0; min-height: 0; font-weight: 600; font-size: 14px; width: auto; max-width: 100%; color: var(--ink); cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+
 @media (prefers-reduced-motion: no-preference) {
   .dialog { animation: up .18s ease-out; }
   @keyframes up { from { transform: translateY(12px); opacity: .6; } to { transform: none; opacity: 1; } }
@@ -586,7 +591,7 @@ const SCHEMA = {
   Righe:     ['id','venditaId','tipo','refId','descrizione','qta','prezzo','operatoreId'],
   Prodotti:  ['id','nome','marca','categoria','unita','formato','soglia','prezzo','costo','barcode','attivo'],
   Movimenti: ['id','data','prodottoId','qta','causale','venditaId','note'],
-  Servizi:   ['id','nome','categoria','reparto','prezzo','prezzoMax','durata','posa','attivo'],
+  Servizi:   ['id','nome','categoria','reparto','prezzo','prezzoMax','durata','posa','consumi','attivo'],
   Operatori: ['id','nome','colore','reparto','attivo'],
   Appuntamenti: ['id','data','ora','durata','clienteId','operatoreId','servizi','stato','venditaId','note','creato'],
 };
@@ -640,6 +645,8 @@ const EUR = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' 
 const eur = n => EUR.format(num(n));
 const eurShort = n => { const v = num(n); return Number.isInteger(v) ? String(v) : v.toFixed(2).replace('.', ','); };
 /** prezzo del listino: "18–25 €" se varia, altrimenti "23,00 €" */
+/* consumi standard di un servizio, salvati come testo JSON: [{"p": idProdotto, "q": quantità}] */
+const parseConsumi = s => { try { const a = JSON.parse(s || '[]'); return Array.isArray(a) ? a.filter(x => x && x.p && num(x.q) > 0) : []; } catch (e) { return []; } };
 const prezzoTxt = s => num(s.prezzoMax) > num(s.prezzo) ? `${eurShort(s.prezzo)}–${eurShort(s.prezzoMax)} €` : eur(s.prezzo);
 const fq = n => num(n).toLocaleString('it-IT', { maximumFractionDigits: 1 });
 const localISO = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -1178,8 +1185,9 @@ function receipt() {
 function rline(r, i) {
   const p = derive().by.Prodotti.get(r.refId);
   if (r.tipo === 'consumo') {
-    return `<div class="rline"><div><div class="nm">${icon('drop', 'style="width:14px;height:14px;vertical-align:-2px;color:var(--brass)"')} ${h(r.descrizione)}</div><div class="sub">uso in salone · scala dal magazzino</div></div>
-      <span class="num small strong">${fq(r.qta)} ${h(p?.unita || '')}</span><button class="btn sm ghost icon" type="button" aria-label="Togli" data-act="togliRiga" data-i="${i}">${icon('x')}</button></div>`;
+    const same = data.Prodotti.filter(x => x.categoria === 'consumo' && (bool(x.attivo) || x.id === r.refId) && (x.unita || '') === (p?.unita || ''));
+    return `<div class="rline cons"><div style="min-width:0"><div class="nm">${icon('drop', 'style="width:14px;height:14px;vertical-align:-2px;color:var(--brass)"')} <select class="cons-sel" data-cons-p="${i}" aria-label="Prodotto usato">${same.map(x => `<option value="${x.id}" ${x.id === r.refId ? 'selected' : ''}>${h(x.nome)}</option>`).join('')}</select></div><div class="sub">${r.da === 'ultima' ? 'come l\'ultima volta' : r.da === 'listino' ? 'consumo standard del listino' : 'uso in salone'} · scala dal magazzino</div></div>
+      <span class="row" style="gap:4px;flex-wrap:nowrap"><input type="number" class="price-in" style="width:70px !important" aria-label="Quantità" data-cons-q="${i}" min="0" step="any" inputmode="decimal" value="${num(r.qta)}"><span class="small muted">${h(p?.unita || '')}</span></span><button class="btn sm ghost icon" type="button" aria-label="Togli" data-act="togliRiga" data-i="${i}">${icon('x')}</button></div>`;
   }
   return `<div class="rline"><div style="min-width:0"><div class="nm">${h(r.descrizione)}</div><div class="sub">${r.tipo === 'prodotto' ? `<span class="qty"><button type="button" data-act="qta" data-i="${i}" data-d="-1" aria-label="Meno">−</button><span>${fq(r.qta)}</span><button type="button" data-act="qta" data-i="${i}" data-d="1" aria-label="Più">+</button></span>` : h(opName(r.operatoreId))}</div></div>
     <input type="number" class="price-in" aria-label="Prezzo" data-price="${i}" min="0" step="0.5" inputmode="decimal" value="${num(r.prezzo)}">
@@ -1211,6 +1219,7 @@ function salvaVendita() {
   const nomeC = fullName(derive().by.Clienti.get(cart.clienteId));
   ops.push(up('Vendite', { id: vid, data: now, clienteId: cart.clienteId, operatoreId: cart.operatoreId, metodo: cart.metodo, sconto: num(cart.sconto), totale: tot, pagato: pag, note: cart.note }));
   for (const r of cart.righe) {
+    if (r.tipo === 'consumo' && !(num(r.qta) > 0)) continue;
     ops.push(up('Righe', { id: uid(), venditaId: vid, tipo: r.tipo, refId: r.refId, descrizione: r.descrizione, qta: r.qta, prezzo: r.tipo === 'consumo' ? 0 : r.prezzo, operatoreId: r.operatoreId || cart.operatoreId }));
     if (r.tipo !== 'servizio') ops.push(up('Movimenti', { id: uid(), data: now, prodottoId: r.refId, qta: -num(r.qta), causale: r.tipo === 'prodotto' ? 'vendita' : 'consumo', venditaId: vid }));
   }
@@ -1226,6 +1235,43 @@ function salvaVendita() {
     <p class="muted small" style="margin:0;text-align:center">La vendita è registrata nell'app. Lo scontrino fiscale si emette come sempre sul registratore telematico.</p>
     <div class="actions"><button class="btn" type="button" data-act="go" data-v="oggi" data-close="1">Vai a Oggi</button><button class="btn primary" type="button" data-act="close">Nuova vendita</button></div>`);
 }
+
+/* ---------- Consumi di tinte e prodotti ---------- */
+function consRow(prods, r) {
+  return `<div class="cons-row"><select aria-label="Prodotto"><option value="">— scegli —</option>${prods.map(p => `<option value="${p.id}" ${p.id === r.p ? 'selected' : ''}>${h(p.nome)}</option>`).join('')}</select><input type="number" min="0" step="any" inputmode="decimal" aria-label="Quantità" value="${r.q === '' ? '' : num(r.q)}" placeholder="quantità"><span class="small muted cons-u">${h(derive().by.Prodotti.get(r.p)?.unita || '')}</span><button class="btn sm ghost icon" type="button" data-act="consDel" aria-label="Togli">${icon('x')}</button></div>`;
+}
+/* quanto prodotto usare per un servizio: prima l'ultima volta della cliente, altrimenti lo standard del listino */
+function consumiPer(clienteId, servId) {
+  const d = derive();
+  if (clienteId) for (const v of d.vendC.get(clienteId) || []) {
+    const rr = d.righe.get(v.id) || [];
+    if (!rr.some(r => r.tipo === 'servizio' && r.refId === servId)) continue;
+    const c = rr.filter(r => r.tipo === 'consumo' && d.by.Prodotti.get(r.refId) && bool(d.by.Prodotti.get(r.refId).attivo));
+    if (c.length) return { da: 'ultima', list: c.map(r => ({ p: r.refId, q: num(r.qta) })) };
+    break;
+  }
+  const s = d.by.Servizi.get(servId);
+  return { da: 'listino', list: parseConsumi(s?.consumi).filter(x => d.by.Prodotti.get(x.p)) };
+}
+/* aggiunge un servizio allo scontrino con i suoi consumi; restituisce il testo per l'avviso */
+function addServizioCart(s, { senzaConsumi = false } = {}) {
+  const key = uid();
+  cart.righe.push({ tipo: 'servizio', refId: s.id, descrizione: s.nome, qta: 1, prezzo: num(s.prezzo), operatoreId: cart.operatoreId, key });
+  if (senzaConsumi) return '';
+  const { da, list } = consumiPer(cart.clienteId, s.id);
+  const giaUsati = new Set(cart.righe.filter(r => r.tipo === 'consumo').map(r => r.refId));
+  const add = list.filter(x => !giaUsati.has(x.p));
+  add.forEach(x => { const p = derive().by.Prodotti.get(x.p); cart.righe.push({ tipo: 'consumo', refId: p.id, descrizione: p.nome, qta: x.q, prezzo: 0, operatoreId: cart.operatoreId, auto: key, da }); });
+  return add.length ? `${add.length === 1 ? 'aggiunto' : 'aggiunti'} ${add.map(x => { const p = derive().by.Prodotti.get(x.p); return `${fq(x.q)} ${p.unita} ${p.nome}`; }).join(', ')}${da === 'ultima' ? ' come l\'ultima volta' : ''}` : '';
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act=consAdd], [data-act=consDel]'); if (!b) return;
+  e.stopPropagation(); e.preventDefault();
+  const ed = b.closest('.f, .cons-wrap')?.querySelector('.cons-ed');
+  if (b.dataset.act === 'consDel') { const row = b.closest('.cons-row'); const box = row.parentElement; row.remove(); if (!box.querySelector('.cons-row')) box.insertAdjacentHTML('beforeend', consRow(JSON.parse(box.dataset.prods).map(([id, nome, unita]) => ({ id, nome, unita })), { p: '', q: '' })); return; }
+  if (ed) ed.insertAdjacentHTML('beforeend', consRow(JSON.parse(ed.dataset.prods).map(([id, nome, unita]) => ({ id, nome, unita })), { p: '', q: '' }));
+}, true);
+document.addEventListener('change', e => { if (e.target.matches('.cons-row select')) { const u = e.target.closest('.cons-row').querySelector('.cons-u'); if (u) u.textContent = derive().by.Prodotti.get(e.target.value)?.unita || ''; } });
 
 /* ---------- Conti aperti ---------- */
 /* incassato in un giorno: quanto pagato subito nelle vendite + i saldi di debiti */
@@ -1465,6 +1511,8 @@ function form({ title, fields, values = {}, onSave, onDelete, delLabel = 'Elimin
     const hint = x.hint ? `<span class="hint">${x.hint}</span>` : '';
     if (x.t === 'check') return `<label class="check ${x.full !== false ? 'full' : ''}" for="${id}"><input type="checkbox" id="${id}" name="${x.k}" ${bool(v) ? 'checked' : ''}><span>${x.l}${x.hint ? `<br>${hint}` : ''}</span></label>`;
     if (x.t === 'select') return `<label class="${cls}" for="${id}">${x.l}<select id="${id}" name="${x.k}">${x.o.map(([ov, ol]) => `<option value="${h(ov)}" ${String(ov) === String(v) ? 'selected' : ''}>${h(ol)}</option>`).join('')}</select>${hint}</label>`;
+    if (x.t === 'consumi') { const prods = data.Prodotti.filter(p => p.categoria === 'consumo' && bool(p.attivo)); const rows = parseConsumi(v);
+      return `<div class="f full"><span>${x.l}</span>${prods.length ? `<div class="cons-ed" data-prods='${h(JSON.stringify(prods.map(p => [p.id, p.nome, p.unita])))}'>${(rows.length ? rows : [{ p: '', q: '' }]).map(r => consRow(prods, r)).join('')}</div><button class="btn sm" type="button" data-act="consAdd" style="align-self:flex-start;margin-top:6px">${icon('plus')}Aggiungi prodotto</button>` : '<span class="hint">Prima aggiungi tinte e ossidanti in Magazzino, come "Uso in salone".</span>'}${hint}</div>`; }
     if (x.t === 'dmy') return `<label class="${cls}" for="${id}">${x.l}<input id="${id}" name="${x.k}" type="text" inputmode="numeric" placeholder="gg/mm/aaaa" maxlength="10" autocomplete="off" data-dmy="1" value="${h(isoToDmy(v))}">${hint}</label>`;
     if (x.t === 'area') return `<label class="${cls}" for="${id}">${x.l}<textarea id="${id}" name="${x.k}" placeholder="${h(x.ph || '')}">${h(v)}</textarea>${hint}</label>`;
     return `<label class="${cls}" for="${id}">${x.l}<input id="${id}" name="${x.k}" type="${x.t || 'text'}" value="${h(v)}" placeholder="${h(x.ph || '')}" ${x.req ? 'required' : ''} ${x.step ? `step="${x.step}"` : ''} ${x.min != null ? `min="${x.min}"` : ''} ${x.t === 'number' ? 'inputmode="decimal"' : ''} ${x.af ? 'autofocus' : ''}>${hint}</label>`;
@@ -1491,7 +1539,8 @@ document.addEventListener('input', e => {
 function readForm(el, fields) {
   const o = {};
   for (const x of fields) {
-    const i = el.elements[x.k]; if (!i) continue;
+    const i = el.elements[x.k]; if (!i && x.t !== 'consumi') continue;
+    if (x.t === 'consumi') { o[x.k] = JSON.stringify([...el.querySelectorAll('.cons-row')].map(r => ({ p: r.querySelector('select').value, q: num(r.querySelector('input').value) })).filter(r => r.p && r.q > 0)); continue; }
     o[x.k] = x.t === 'check' ? i.checked : x.t === 'number' ? num(i.value) : x.t === 'dmy' ? dmyToIso(i.value) : i.value.trim();
   }
   return o;
@@ -1622,6 +1671,7 @@ function formServizio(s) {
       { k: 'prezzoMax', l: 'Fino a € (se varia)', t: 'number', min: 0, step: '0.5', hint: 'es. shampoo e piega da 18 a 25: scrivi 25' },
       { k: 'durata', l: 'Durata (minuti)', t: 'number', min: 0, step: '5' },
       ...(cfg.usaPosa ? [{ k: 'posa', l: 'Di cui in posa (minuti)', t: 'number', min: 0, step: '5', hint: 'tempo in cui chi lo fa può prendere un\'altra cliente, es. 35 per un colore' }] : []),
+      { k: 'consumi', l: 'Prodotti usati di solito', t: 'consumi', full: true, hint: 'a ogni servizio il magazzino scala da solo queste quantità; per una cliente che è già venuta si usano quelle della sua ultima volta' },
       { k: 'attivo', l: 'Mostra in cassa', t: 'check' },
     ],
     onSave: v => { if (!v.nome) return 'Scrivi il nome del servizio.'; if (num(v.posa) >= num(v.durata) && num(v.posa)) return 'La posa deve essere più corta della durata.'; commit([up('Servizi', Object.assign({}, s, v))]); closeModal(); toast('Listino aggiornato'); },
@@ -1690,11 +1740,11 @@ const ACT = {
   sortClienti: (el) => { ui.clientiSort = el.dataset.v; render(); },
   // cassa
   cassaTab: (el) => { cart.tab = el.dataset.v; cart.q = ''; render(); },
-  addServizio: (el) => { const s = derive().by.Servizi.get(el.dataset.id); cart.righe.push({ tipo: 'servizio', refId: s.id, descrizione: s.nome, qta: 1, prezzo: num(s.prezzo), operatoreId: cart.operatoreId }); refreshCart(); toast(`${s.nome} · ${eur(s.prezzo)}`); },
+  addServizio: (el) => { const s = derive().by.Servizi.get(el.dataset.id); const n = addServizioCart(s); refreshCart(); toast(`${s.nome} · ${prezzoTxt(s)}${n ? ` · ${n}` : ''}`); },
   addProdotto: (el) => { const p = derive().by.Prodotti.get(el.dataset.id); addProdotto(p); },
   addConsumo: (el) => consumoForm(derive().by.Prodotti.get(el.dataset.id)),
   qta: (el) => { const r = cart.righe[+el.dataset.i]; r.qta = Math.max(1, num(r.qta) + +el.dataset.d); refreshCart(); },
-  togliRiga: (el) => { cart.righe.splice(+el.dataset.i, 1); refreshCart(); },
+  togliRiga: (el) => { const r = cart.righe[+el.dataset.i]; cart.righe.splice(+el.dataset.i, 1); if (r && r.tipo === 'servizio' && r.key) cart.righe = cart.righe.filter(x => x.auto !== r.key); refreshCart(); },
   svuota: () => { cart = newCart(cart.clienteId); render(); },
   metodo: (el) => { cart.metodo = el.dataset.v; refreshCart(); },
   cassaPaga: (el) => { cart.paga = el.dataset.v; refreshCart(); if (cart.paga === 'parte') setTimeout(() => $('#pagaParte')?.focus(), 30); },
@@ -2014,7 +2064,7 @@ function ultimaVolta(clienteId) {
   const vs = d.vendC.get(clienteId) || [];
   for (const v of vs) {
     const ids = [...new Set((d.righe.get(v.id) || []).filter(r => r.tipo === 'servizio' && d.by.Servizi.get(r.refId)).map(r => r.refId))];
-    if (ids.length) return { data: v.data, ids, operatoreId: (d.righe.get(v.id) || []).find(r => r.tipo === 'servizio')?.operatoreId || v.operatoreId };
+    if (ids.length) return { data: v.data, ids, operatoreId: (d.righe.get(v.id) || []).find(r => r.tipo === 'servizio')?.operatoreId || v.operatoreId, consumi: (d.righe.get(v.id) || []).filter(r => r.tipo === 'consumo' && d.by.Prodotti.get(r.refId) && bool(d.by.Prodotti.get(r.refId).attivo)).map(r => ({ p: r.refId, q: num(r.qta) })) };
   }
   return null;
 }
@@ -2121,7 +2171,8 @@ function apptIncassa(a) {
   cart = newCart(a.clienteId);
   if (a.operatoreId) cart.operatoreId = a.operatoreId;
   cart.apptId = a.id;
-  cart.righe = apptServizi(a).map(x => ({ tipo: 'servizio', refId: x.id, descrizione: x.nome, qta: 1, prezzo: num(x.prezzo), operatoreId: cart.operatoreId }));
+  cart.righe = [];
+  apptServizi(a).forEach(x => addServizioCart(x));
   if (a.stato === 'prenotato') commit([up('Appuntamenti', Object.assign({}, a, { stato: 'arrivata' }))], { quiet: true });
   go('cassa');
 }
@@ -2161,6 +2212,9 @@ function renderChiusura() {
   }
   const colore = sv.some(x => x.categoria === 'Colore' || x.categoria === 'Schiaritura');
   const consumi = data.Prodotti.filter(p => bool(p.attivo) && p.categoria === 'consumo');
+  // proposta dei consumi: ultima volta della cliente o standard del listino, senza doppioni
+  const prop = []; let daUltima = false;
+  sv.forEach(x => { const r = consumiPer(a.clienteId, x.id); if (r.da === 'ultima' && r.list.length) daUltima = true; r.list.forEach(c => { if (!prop.some(y => y.p === c.p)) prop.push(c); }); });
   const lastF = (d.formule.get(a.clienteId) || [])[0];
   openModal(`${head}
     ${a.stato === 'arrivata' ? `<span class="pill accent" style="align-self:flex-start">Segnata come arrivata</span>` : `<span class="pill ok" style="align-self:flex-start">È venuta</span>`}
@@ -2170,7 +2224,7 @@ function renderChiusura() {
         <span class="hint">${prezzo ? `listino: ${sv.map(x => `${h(x.nome)} ${prezzoTxt(x)}`).join(' + ')}. Scrivi il prezzo fatto davvero` : 'nessun prezzo previsto: scrivi il prezzo fatto'}</span></label>
       <div class="seg" role="group" aria-label="Pagamento">${Object.entries(METODI).map(([k, l]) => `<button type="button" data-act="chMetodo" data-v="${k}" aria-pressed="${CH.metodo === k}">${l}</button>`).join('')}</div>
       <div id="chPaga">${pagaBlock(CH, 'chPaga', 'chParte', true, prezzo)}</div>
-      ${colore && consumi.length ? `<div class="form" style="gap:10px"><label class="f" for="chTinta">Tinta usata <span class="hint">facoltativo, per il magazzino</span><select id="chTinta" name="tinta"><option value="">—</option>${consumi.map(p => `<option value="${p.id}">${h(p.nome)}</option>`).join('')}</select></label><label class="f" for="chMl">Quantità<input type="number" id="chMl" name="ml" min="0" step="any" inputmode="decimal" placeholder="es. 60"></label>${lastF ? `<p class="hint full" style="margin:0">Ultima formula: ${h(lastF.formula.split('\n')[0])}</p>` : ''}</div>` : ''}
+      ${(colore || prop.length) && consumi.length ? `<div class="f cons-wrap"><span>Tinte e prodotti usati <span class="hint">${prop.length ? (daUltima ? 'come l\'ultima volta: correggi se oggi è diverso' : 'consumo standard del listino: correggi se serve') : 'facoltativo, per il magazzino'}</span></span><div class="cons-ed" data-prods='${h(JSON.stringify(consumi.map(p => [p.id, p.nome, p.unita])))}'>${(prop.length ? prop : [{ p: '', q: '' }]).map(r => consRow(consumi, r)).join('')}</div><button class="btn sm" type="button" data-act="consAdd" style="align-self:flex-start;margin-top:6px">${icon('plus')}Aggiungi prodotto</button>${lastF ? `<p class="hint" style="margin:6px 0 0">Ultima formula: ${h(lastF.formula.split('\n')[0])}</p>` : ''}</div>` : ''}
       <div class="actions"><button class="btn ghost left" type="button" data-act="chSkip">Decido dopo</button><button class="btn" type="button" data-act="chCassa">Apri in cassa</button><button class="btn primary" type="submit">Conferma</button></div>
     </form>`);
 }
@@ -2187,12 +2241,12 @@ function confermaChiusura() {
   ops.push(up('Vendite', { id: vid, data: when, clienteId: a.clienteId, operatoreId: op, metodo: CH.metodo, sconto: diff < 0 ? -diff : 0, totale: imp, pagato: pag, note: 'Confermata alla chiusura giornata' }));
   sv.forEach(x => ops.push(up('Righe', { id: uid(), venditaId: vid, tipo: 'servizio', refId: x.id, descrizione: x.nome, qta: 1, prezzo: num(x.prezzo), operatoreId: op })));
   if (diff > 0) ops.push(up('Righe', { id: uid(), venditaId: vid, tipo: 'servizio', refId: '', descrizione: sv.length ? 'Supplemento' : 'Servizio', qta: 1, prezzo: diff, operatoreId: op }));
-  const tinta = f.elements.tinta?.value; const ml = num(f.elements.ml?.value);
-  if (tinta && ml > 0) {
-    const p = derive().by.Prodotti.get(tinta);
-    ops.push(up('Righe', { id: uid(), venditaId: vid, tipo: 'consumo', refId: tinta, descrizione: p?.nome || '', qta: ml, prezzo: 0, operatoreId: op }));
-    ops.push(up('Movimenti', { id: uid(), data: when, prodottoId: tinta, qta: -ml, causale: 'consumo', venditaId: vid }));
-  }
+  [...f.querySelectorAll('.cons-row')].forEach(row => {
+    const pidv = row.querySelector('select').value; const q = num(row.querySelector('input').value);
+    const p = derive().by.Prodotti.get(pidv); if (!p || !(q > 0)) return;
+    ops.push(up('Righe', { id: uid(), venditaId: vid, tipo: 'consumo', refId: p.id, descrizione: p.nome, qta: q, prezzo: 0, operatoreId: op }));
+    ops.push(up('Movimenti', { id: uid(), data: when, prodottoId: p.id, qta: -q, causale: 'consumo', venditaId: vid }));
+  });
   ops.push(up('Appuntamenti', Object.assign({}, a, { stato: 'fatto', venditaId: vid })));
   commit(ops, { quiet: true });
   CH.res.inc++; CH.res.tot += pag; CH.res.aperti = (CH.res.aperti || 0) + (imp - pag); CH.i++; CH.step = ''; CH.paga = 'tutto'; CH.pagaParte = '';
@@ -2500,7 +2554,7 @@ ACT.cpOp = el => { CP.op = el.dataset.id; CP.opAuto = false; renderCerca(); };
 ACT.afEdit = () => { afRead(); af.edit = true; renderApptForm(); };
 ACT.afBack = () => { closeModal(); if (CP) renderCerca(true); };
 ACT.afRipeti = () => { afRead(); const uv = ultimaVolta(af.a.clienteId); if (!uv) return; af.sel = [...uv.ids]; if (operatori().some(o => o.id === uv.operatoreId)) af.a.operatoreId = uv.operatoreId; af.durManual = false; renderApptForm(); };
-ACT.cassaRipeti = () => { const uv = ultimaVolta(cart.clienteId); if (!uv) return; if (operatori().some(o => o.id === uv.operatoreId)) cart.operatoreId = uv.operatoreId; const by = derive().by.Servizi; uv.ids.forEach(id => { const sv = by.get(id); cart.righe.push({ tipo: 'servizio', refId: sv.id, descrizione: sv.nome, qta: 1, prezzo: num(sv.prezzo), operatoreId: cart.operatoreId }); }); refreshCart(); const cat = $('#catalogo'); if (cat) cat.innerHTML = catalogo(); toast('Aggiunti i servizi dell\'ultima volta'); };
+ACT.cassaRipeti = () => { const uv = ultimaVolta(cart.clienteId); if (!uv) return; if (operatori().some(o => o.id === uv.operatoreId)) cart.operatoreId = uv.operatoreId; const by = derive().by.Servizi; uv.ids.forEach(id => addServizioCart(by.get(id), { senzaConsumi: true })); const gia = new Set(cart.righe.filter(r => r.tipo === 'consumo').map(r => r.refId)); uv.consumi.filter(x => !gia.has(x.p)).forEach(x => { const p = derive().by.Prodotti.get(x.p); cart.righe.push({ tipo: 'consumo', refId: p.id, descrizione: p.nome, qta: x.q, prezzo: 0, operatoreId: cart.operatoreId, da: 'ultima' }); }); refreshCart(); const cat = $('#catalogo'); if (cat) cat.innerHTML = catalogo(); toast(uv.consumi.length ? 'Aggiunti servizi e tinte dell\'ultima volta' : 'Aggiunti i servizi dell\'ultima volta'); };
 ACT.cassaOp = el => {
   cart.operatoreId = el.dataset.id; cart.opTouched = true;
   cart.righe.forEach(r => { if (r.tipo === 'servizio') r.operatoreId = el.dataset.id; });
@@ -2651,6 +2705,7 @@ document.addEventListener('input', e => {
   }
   if (t.dataset.price != null) { cart.righe[+t.dataset.price].prezzo = num(t.value); updateTotals(); }
   if (t.dataset.field === 'sconto') { cart.sconto = num(t.value); updateTotals(); }
+  if (t.dataset.consQ != null) { const r = cart.righe[+t.dataset.consQ]; if (r) r.qta = num(t.value); }
   if (t.dataset.field === 'formula') cart.formula = t.value;
   if (t.dataset.field === 'pagaParte') { cart.pagaParte = t.value; const r = $('#pagaResto'); if (r) r.textContent = eur(Math.max(0, cartTot() - num(t.value))); }
   if (t.dataset.field === 'note') cart.note = t.value;
@@ -2661,6 +2716,7 @@ document.addEventListener('change', e => {
   if (t.dataset.af) { afRead(); afRefresh(); }
   if (t.dataset.field === 'operatoreId') { cart.operatoreId = t.value; cart.righe.forEach(r => { if (r.tipo === 'servizio') r.operatoreId = t.value; }); refreshCart(); }
   if (t.dataset.price != null || t.dataset.field === 'sconto') refreshCart();
+  if (t.dataset.consP != null) { const r = cart.righe[+t.dataset.consP]; const p = derive().by.Prodotti.get(t.value); if (r && p) { r.refId = p.id; r.descrizione = p.nome; r.da = ''; } refreshCart(); }
 });
 function updateTotals() {
   const v = $('#receipt .total .v'); if (v) v.textContent = eur(cartTot());
@@ -2833,6 +2889,15 @@ function seedDemo() {
   // qualche appuntamento passato non presentato
   mkAppt(dayShift(prevDay, -21), '10:00', 5, ['Piega'], 2, 'nonvenuta');
   mkAppt(dayShift(prevDay, -50), '16:00', 5, ['Piega'], 2, 'nonvenuta');
+  // consumi standard di esempio nel listino
+  const pid = n => prods.find(p => p.nome.startsWith(n))?.id;
+  const setC = (nome, list) => { const s = d.Servizi.find(x => x.nome === nome); if (s) s.consumi = JSON.stringify(list.filter(x => x.p)); };
+  setC('Colore ricrescita', [{ p: pid('Tinta 5.0'), q: 60 }, { p: pid('Ossidante'), q: 90 }]);
+  setC('Colore completo', [{ p: pid('Tinta 5.0'), q: 90 }, { p: pid('Ossidante'), q: 135 }]);
+  setC('Color refill / toner gloss', [{ p: pid('Tinta 8.0'), q: 30 }, { p: pid('Ossidante'), q: 45 }]);
+  setC('Colore uomo', [{ p: pid('Tinta 5.0'), q: 40 }, { p: pid('Ossidante'), q: 60 }]);
+  setC('Meches / Balayage', [{ p: pid('Decolorante'), q: 40 }, { p: pid('Ossidante'), q: 80 }]);
+  setC('Decappage / cambio colore', [{ p: pid('Decolorante'), q: 30 }, { p: pid('Ossidante'), q: 60 }]);
   // un conto aperto di esempio: Rosa ha lasciato 15 € da pagare
   const vr = d.Vendite.filter(v => v.clienteId === d.Clienti[11].id).sort((a, b) => (a.data < b.data ? 1 : -1))[0];
   if (vr) vr.pagato = Math.max(0, vr.totale - 15);
@@ -2844,7 +2909,7 @@ function seedDemo() {
   for (const k in d) d[k] = d[k].map(r => normRow(k, r));
   data = d; ver++;
   store.set(K.data, data);
-  meta.demo = true; meta.demoVer = 9; store.set(K.meta, meta);
+  meta.demo = true; meta.demoVer = 10; store.set(K.meta, meta);
   cart = newCart();
 }
 
@@ -2852,7 +2917,7 @@ function seedDemo() {
 (function boot() {
   const saved = store.get(K.data, null);
   if (saved && typeof saved === 'object') { data = emptyData(); for (const k in SCHEMA) data[k] = (saved[k] || []).map(r => normRow(k, r)); ver++; }
-  if (isDemo() && (!saved || meta.demoVer !== 9 || (!meta.demo && !data.Vendite.length && !data.Clienti.length))) seedDemo();
+  if (isDemo() && (!saved || meta.demoVer !== 10 || (!meta.demo && !data.Vendite.length && !data.Clienti.length))) seedDemo();
   if (!isDemo() && !cfg.pin) needLogin = true;
   cart = newCart();
   render();
