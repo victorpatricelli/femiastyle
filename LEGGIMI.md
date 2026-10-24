@@ -57,7 +57,7 @@ Senza internet l'app continua a funzionare: le modifiche partono appena torna la
 
 ## Cose da sapere
 
-- **Privacy:** prima di salvare dati di una cliente serve il consenso firmato (c'è la spunta nella scheda). Allergie e reazioni sono dati sanitari: annotale solo con il consenso. Il Foglio va condiviso solo con chi lavora in salone.
+- **Privacy:** nome, telefono e storico servizi servono a fare il lavoro: basta il cartello con l'informativa alla cassa, senza firme. Chi vuole offerte, auguri e messaggi "ti aspettiamo" firma il mini-modulo e nella scheda si spunta "consenso ai messaggi promozionali": solo queste clienti compaiono tra i compleanni e le clienti da richiamare, e solo a loro l'app propone quei messaggi. I promemoria degli appuntamenti si mandano a tutte. Le allergie di base non si annotano (sono dati sulla salute): si attivano in *Impostazioni* solo con il modulo completo firmato. Il Foglio non va condiviso con nessuno fuori dal salone.
 - **Backup:** Fogli Google tiene la cronologia delle versioni (*File → Cronologia versioni*). Ogni tanto conviene anche *File → Scarica → Excel*.
 - **Analisi:** i dati sono normali tabelle nel Foglio, puoi farci tabelle pivot e grafici.
 - **Uomo e donna:** nel listino ogni servizio è *Donna*, *Uomo* o *Tutto lo staff* (per esempio il taglio corto donna, che fa anche Enzo). Anche ogni persona dello staff ha il suo reparto: quando scegli Enzo vedi per primi i servizi da uomo, con Sandra e Valeria quelli da donna. *Cerca posto* con "Chiunque" propone per i servizi da uomo solo chi fa uomo, e viceversa.

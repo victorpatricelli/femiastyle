@@ -559,7 +559,7 @@ const DEFAULT_CFG = {
   msgRichiamo: 'Ciao {nome}, è da un po\' che non ti vediamo da {salone}! Vuoi che ti fissiamo un appuntamento?',
   msgAuguri: 'Tanti auguri {nome}! Un abbraccio da tutto lo staff di {salone}.',
   ultimoOperatore: '',
-  apertura: '08:30', chiusura: '21:00', pausaDa: '', pausaA: '', oraChiusura: '19:30', giorni: [2, 3, 4, 5, 6], orariVer: 3, usaPosa: false,
+  apertura: '08:30', chiusura: '21:00', pausaDa: '', pausaA: '', oraChiusura: '19:30', giorni: [2, 3, 4, 5, 6], orariVer: 3, usaPosa: false, usaAllergie: false,
 };
 const storedCfg = store.get(K.cfg, {});
 let cfg = Object.assign({}, DEFAULT_CFG, storedCfg);
@@ -910,10 +910,10 @@ function viewOggi() {
       </div></section>
     </div>
     <div class="stack">
-      <section class="panel"><header><h2>Da richiamare</h2><span class="muted small">non vengono da più di ${cfg.giorniPersi} giorni</span></header><div class="body">
+      <section class="panel"><header><h2>Da richiamare</h2><span class="muted small">da più di ${cfg.giorniPersi} giorni · con consenso</span></header><div class="body">
         ${persi.length ? `<ul class="list">${persi.map(({ c, s }) => clienteItem(c, `<div class="end"><div class="num small strong">${eur(s.tot)}</div><div class="d small muted">${ago(s.last)}</div></div>`)).join('')}</ul>` : `<div class="empty">Nessuna cliente abituale assente da troppo tempo.</div>`}
       </div></section>
-      <section class="panel"><header><h2>Compleanni dei prossimi 7 giorni</h2></header><div class="body">
+      <section class="panel"><header><h2>Compleanni dei prossimi 7 giorni</h2><span class="muted small">con consenso</span></header><div class="body">
         ${comp.length ? `<ul class="list">${comp.map(({ c, giorni }) => clienteItem(c, `<div class="end"><span class="pill ${giorni === 0 ? 'accent' : ''}">${giorni === 0 ? 'oggi' : giorni === 1 ? 'domani' : fdateShort(nextBirthday(c.compleanno))}</span></div>`)).join('')}</ul>` : `<div class="empty">Nessun compleanno in arrivo.</div>`}
       </div></section>
     </div>
@@ -932,9 +932,11 @@ function venditaItem(v) {
 function clienteItem(c, end = '') {
   return `<li><button class="item" type="button" data-act="cliente" data-id="${c.id}"><span class="avatar">${h(initials(c))}</span><div class="main"><div class="t">${h(fullName(c))}</div><div class="d">${h(c.telefono || 'nessun telefono')}</div></div>${end}</button></li>`;
 }
+/* consenso ai messaggi promozionali (richiamo, auguri, offerte) */
+const promoOk = c => bool(c?.consenso);
 function clientiPersi() {
   const d = derive();
-  return data.Clienti.map(c => ({ c, s: d.stats.get(c.id) }))
+  return data.Clienti.filter(promoOk).map(c => ({ c, s: d.stats.get(c.id) }))
     .filter(({ s }) => s && s.n >= 2 && daysAgo(s.last) > num(cfg.giorniPersi))
     .sort((a, b) => b.s.tot - a.s.tot);
 }
@@ -947,7 +949,7 @@ function nextBirthday(s) {
   return localISO(n).slice(0, 10);
 }
 function compleanni(giorni) {
-  return data.Clienti.filter(c => c.compleanno).map(c => ({ c, giorni: -daysAgo(nextBirthday(c.compleanno)) }))
+  return data.Clienti.filter(c => c.compleanno && promoOk(c)).map(c => ({ c, giorni: -daysAgo(nextBirthday(c.compleanno)) }))
     .filter(x => x.giorni >= 0 && x.giorni <= giorni).sort((a, b) => a.giorni - b.giorni);
 }
 
@@ -994,7 +996,7 @@ function viewCliente() {
   <div class="pagehead">
     <div class="profile grow"><span class="avatar lg">${h(initials(c))}</span><div style="min-width:0"><h1>${h(fullName(c))}</h1>
       <div class="row small" style="margin-top:6px">
-        ${bool(c.consenso) ? `<span class="pill ok">Privacy firmata</span>` : `<span class="pill warn">Manca il consenso privacy</span>`}
+        ${promoOk(c) ? `<span class="pill ok">Messaggi promozionali: sì</span>` : `<span class="pill">Niente messaggi promozionali</span>`}
         ${usaColore || c.testCutaneo ? (tc == null ? `<span class="pill warn">Prova di tolleranza mai fatta</span>` : `<span class="pill ${tc > 180 ? 'warn' : ''}">Prova di tolleranza: ${ago(c.testCutaneo)}</span>`) : ''}
         ${persa ? `<span class="pill danger">Assente da ${daysAgo(s.last)} giorni</span>` : ''}
       </div></div></div>
@@ -1022,9 +1024,9 @@ function viewCliente() {
           <dt>Telefono</dt><dd>${tel}</dd>
           <dt>Email</dt><dd>${c.email ? h(c.email) : '<span class="muted">—</span>'}</dd>
           <dt>Compleanno</dt><dd>${c.compleanno ? fdate(c.compleanno).replace(/ \d{4}$/, '') : '<span class="muted">—</span>'}</dd>
-          <dt>Allergie</dt><dd>${c.avvertenze ? `<span class="strong" style="color:var(--danger)">${h(c.avvertenze)}</span>` : '<span class="muted">nessuna annotata</span>'}</dd>
+          ${cfg.usaAllergie ? `<dt>Allergie</dt><dd>${c.avvertenze ? `<span class="strong" style="color:var(--danger)">${h(c.avvertenze)}</span>` : '<span class="muted">nessuna annotata</span>'}</dd>` : ''}
           <dt>Note</dt><dd>${c.note ? h(c.note) : '<span class="muted">—</span>'}</dd>
-          <dt>Privacy</dt><dd>${bool(c.consenso) ? `firmata${c.consensoData ? ' il ' + fdate(c.consensoData) : ''}` : 'non firmata'}</dd>
+          <dt>Promozioni</dt><dd>${promoOk(c) ? `consenso firmato${c.consensoData ? ' il ' + fdate(c.consensoData) : ''}` : 'nessun consenso: solo promemoria degli appuntamenti'}</dd>
         </dl>
       </div></section>
     </div>
@@ -1086,7 +1088,7 @@ function receipt() {
   return `<header><h2>Scontrino</h2>${ap ? `<span class="pill accent">appuntamento delle ${h(ap.ora)}</span>` : ''}${cart.righe.length ? `<button class="btn sm ghost" type="button" data-act="svuota">Svuota</button>` : ''}</header><div class="body">
     <div>
       ${c ? `<div class="row"><span class="avatar">${h(initials(c))}</span><div class="grow"><div class="strong">${h(fullName(c))}</div><div class="small muted">${d.stats.get(c.id)?.n ? `ultima visita ${ago(d.stats.get(c.id).last)}` : 'prima visita'}</div></div><button class="btn sm ghost icon" type="button" aria-label="Togli cliente" data-act="togliCliente">${icon('x')}</button></div>
-            ${c.avvertenze ? `<div class="pill danger" style="margin-top:8px;white-space:normal">Allergie: ${h(c.avvertenze)}</div>` : ''}`
+            ${cfg.usaAllergie && c.avvertenze ? `<div class="pill danger" style="margin-top:8px;white-space:normal">Allergie: ${h(c.avvertenze)}</div>` : ''}`
         : `<label class="f" for="cassaCQ">Cliente</label><div class="search" style="margin-top:5px">${icon('search')}<input type="search" id="cassaCQ" data-filter="cassaCQ" placeholder="Cerca cliente o lascia vuoto" value="${h(cart.cq)}" autocomplete="off"></div><div id="cassaCRes">${clientePicker()}</div>`}
     </div>
     ${opPicker(cart.operatoreId, 'cassaOp', { label: 'Chi ha lavorato' })}
@@ -1298,6 +1300,7 @@ function viewImpostazioni() {
         <form class="form" data-form="salone">
           <label class="f" for="cfgSalone">Nome del salone<input type="text" id="cfgSalone" name="salone" value="${h(cfg.salone)}"></label>
           <label class="f" for="cfgGiorni">Cliente da richiamare dopo (giorni)<input type="number" id="cfgGiorni" name="giorniPersi" min="15" step="5" value="${num(cfg.giorniPersi)}"></label>
+          <label class="check full" for="cfgAll"><input type="checkbox" id="cfgAll" name="usaAllergie" ${cfg.usaAllergie ? 'checked' : ''}><span>Annotare allergie e reazioni nelle schede<br><span class="hint">sono dati sulla salute: servono il modulo completo e il consenso scritto della cliente</span></span></label>
           <div class="full"><button class="btn primary" type="submit">Salva</button></div>
         </form>
       </div></section>
@@ -1388,9 +1391,9 @@ function formCliente(c, after) {
       { k: 'nome', l: 'Nome', req: true, af: true }, { k: 'cognome', l: 'Cognome' },
       { k: 'telefono', l: 'Cellulare', t: 'tel', ph: '333 123 4567' }, { k: 'email', l: 'Email', t: 'email' },
       { k: 'compleanno', l: 'Compleanno', t: 'date' }, { k: 'testCutaneo', l: 'Ultima prova di tolleranza', t: 'date', hint: 'test cutaneo prima del colore' },
-      { k: 'avvertenze', l: 'Allergie o reazioni ai prodotti', t: 'area', full: true, hint: 'È un dato sanitario: annotalo solo se la cliente ha firmato il consenso.' },
+      ...(cfg.usaAllergie ? [{ k: 'avvertenze', l: 'Allergie o reazioni ai prodotti', t: 'area', full: true, hint: 'È un dato sanitario: annotalo solo se la cliente ha firmato il consenso scritto.' }] : []),
       { k: 'note', l: 'Note', t: 'area', full: true, ph: 'tipo di capello, preferenze, come le piace la piega…' },
-      { k: 'consenso', l: 'Ha firmato il consenso al trattamento dei dati (privacy)', t: 'check' },
+      { k: 'consenso', l: 'Ha firmato il consenso ai messaggi promozionali', hint: 'offerte, auguri, "ti aspettiamo". I promemoria degli appuntamenti si mandano a tutte.', t: 'check' },
     ],
     onSave: v => {
       if (!v.nome) return 'Scrivi almeno il nome.';
@@ -1526,9 +1529,11 @@ function showVendita(id) {
     <div class="actions"><button class="btn danger left" type="button" data-act="annullaVendita" data-id="${v.id}">Annulla vendita</button>${c ? `<button class="btn" type="button" data-act="cliente" data-id="${c.id}" data-close="1">Scheda cliente</button>` : ''}<button class="btn primary" type="button" data-act="close">Chiudi</button></div>`);
 }
 function waMenu(c) {
-  const opts = [['Promemoria appuntamento', cfg.msgPromemoria], ['Ti aspettiamo (richiamo)', cfg.msgRichiamo], ['Auguri di compleanno', cfg.msgAuguri], ['Messaggio vuoto', '']];
-  openModal(`<h2>WhatsApp a ${h(c.nome)}</h2><p class="muted small" style="margin:0">Numero: <span class="num">${h(c.telefono)}</span>${bool(c.consenso) ? '' : ' · senza consenso privacy firmato invia solo messaggi di servizio, non promozioni.'}</p>
-    <div class="stack" style="gap:8px">${opts.map(([l, t]) => `<a class="btn wa" style="justify-content:flex-start" href="${h(waLink(c, t))}" target="_blank" rel="noopener" data-close="1">${icon('wa')}${l}</a>`).join('')}</div>
+  const ok = promoOk(c);
+  const opts = [['Promemoria appuntamento', cfg.msgPromemoria, false], ['Ti aspettiamo (richiamo)', cfg.msgRichiamo, true], ['Auguri di compleanno', cfg.msgAuguri, true], ['Messaggio vuoto', '', false]];
+  openModal(`<h2>WhatsApp a ${h(c.nome)}</h2><p class="muted small" style="margin:0">Numero: <span class="num">${h(c.telefono)}</span></p>
+    <div class="stack" style="gap:8px">${opts.map(([l, t, promo]) => promo && !ok ? `<div class="btn" style="justify-content:flex-start;opacity:.5;cursor:not-allowed" aria-disabled="true">${icon('wa')}${l}</div>` : `<a class="btn wa" style="justify-content:flex-start" href="${h(waLink(c, t))}" target="_blank" rel="noopener" data-close="1">${icon('wa')}${l}</a>`).join('')}</div>
+    ${ok ? '' : `<p class="hint" style="margin:0">Richiamo e auguri sono messaggi promozionali: servono il mini-modulo firmato e la spunta nella scheda della cliente.</p>`}
     <div class="actions"><button class="btn" type="button" data-act="close">Chiudi</button></div>`);
 }
 function altroMenu() {
@@ -1788,7 +1793,7 @@ function renderApptForm() {
   <form class="form" data-form="appt" novalidate>
     <div class="full">
       <div class="f" style="margin-bottom:5px">Cliente</div>
-      ${c ? `<div class="row"><span class="avatar">${h(initials(c))}</span><div class="grow"><div class="strong">${h(fullName(c))}</div><div class="small muted">${h(c.telefono || '')}</div></div><button class="btn sm ghost" type="button" data-act="afTogliCliente">Cambia</button></div>${c.avvertenze ? `<div class="pill danger" style="margin-top:8px;white-space:normal">Allergie: ${h(c.avvertenze)}</div>` : ''}`
+      ${c ? `<div class="row"><span class="avatar">${h(initials(c))}</span><div class="grow"><div class="strong">${h(fullName(c))}</div><div class="small muted">${h(c.telefono || '')}</div></div><button class="btn sm ghost" type="button" data-act="afTogliCliente">Cambia</button></div>${cfg.usaAllergie && c.avvertenze ? `<div class="pill danger" style="margin-top:8px;white-space:normal">Allergie: ${h(c.avvertenze)}</div>` : ''}`
         : af.nuovo ? `<div class="form" style="gap:10px"><label class="f" for="afNome">Nome e cognome<input type="text" id="afNome" data-af="1" value="${h(af.nuovo.nome)}"></label><label class="f" for="afTel">Cellulare<input type="tel" id="afTel" data-af="1" value="${h(af.nuovo.tel)}" placeholder="333 123 4567"></label><p class="hint full" style="margin:0">Creo la scheda della nuova cliente insieme all'appuntamento. <button class="btn sm ghost" type="button" data-act="afTogliCliente">Cerca tra le clienti</button></p></div>`
         : `<div class="search">${icon('search')}<input type="search" id="afCQ" data-filter="afCQ" placeholder="Cerca per nome o telefono" value="${h(af.cq)}" autocomplete="off"></div><div id="afRes">${afPicker()}</div>`}
     </div>
@@ -1886,7 +1891,7 @@ function apptDetail(id) {
   openModal(`<div><div class="eyebrow">${h(cap(fday(a.data)))} · ${h(a.ora)}–${m2hm(apptEnd(a))}</div><h2>${h(fullName(c))}</h2>
       <div class="row small" style="margin-top:8px"><span class="pill ${sc}">${sl}</span><span class="muted"><span class="opdot" style="background:${h(opColor(a.operatoreId))}"></span> ${h(a.operatoreId ? opName(a.operatoreId) : 'da assegnare')}</span>${c?.telefono ? `<span class="muted num">${h(c.telefono)}</span>` : ''}</div></div>
     ${['prenotato', 'arrivata', 'fatto'].includes(a.stato) ? `<ol class="flow">${[['prenotato', 'Prenotata'], ['arrivata', 'Arrivata'], ['fatto', 'Incassata']].map(([k, l], i, arr) => { const cur = arr.findIndex(x => x[0] === a.stato); return `<li class="${i < cur ? 'done' : i === cur ? 'cur' : ''}"><span>${i < cur ? '✓' : i + 1}</span>${l}</li>`; }).join('')}</ol>` : ''}
-    ${c?.avvertenze ? `<div class="pill danger" style="white-space:normal">Allergie: ${h(c.avvertenze)}</div>` : ''}
+    ${cfg.usaAllergie && c?.avvertenze ? `<div class="pill danger" style="white-space:normal">Allergie: ${h(c.avvertenze)}</div>` : ''}
     <div>${sv.map(x => `<div class="rline" style="grid-template-columns:minmax(0,1fr) auto"><div><div class="nm">${h(x.nome)}</div><div class="sub">${durTxt(num(x.durata))}${cfg.usaPosa && num(x.posa) ? ` · posa ${num(x.posa)} min` : ''}</div></div><span class="num">${prezzoTxt(x)}</span></div>`).join('') || '<p class="muted" style="margin:0">Nessun servizio indicato.</p>'}</div>
     <div class="total"><span class="strong">Previsto</span><span class="v">${eur(apptPrezzo(a))}</span></div>
     ${a.note ? `<p class="small" style="margin:0"><span class="muted">Note:</span> ${h(a.note)}</p>` : ''}
@@ -2242,7 +2247,7 @@ const TOUR = [
   { sel: ['.prom-panel'], title: 'Promemoria del giorno dopo', text: 'Ogni sera: un tocco su "Invia" e WhatsApp si apre con il messaggio già scritto, con giorno e ora.', view: 'agenda' },
   { sel: ['.cassa [role=tablist]', '#catalogo'], title: 'Cassa', text: 'Per chi passa senza appuntamento, o per incassare: toccate i servizi e i prodotti venduti. Nella scheda "Tinte e consumi" segnate la tinta usata e il magazzino si aggiorna da solo.', view: 'cassa' },
   { sel: ['#receipt .total', '#receipt'], title: 'Il totale', text: 'Premete "Registra vendita": l\'app vi mostra in grande l\'importo da battere sul registratore. Lo scontrino fiscale si fa come sempre.', view: 'cassa' },
-  { sel: ['#clientiList'], title: 'Le clienti', text: 'Ogni cliente ha la sua scheda: quanto spende, ogni quanto viene, le formule colore, le allergie e il consenso privacy.', view: 'clienti' },
+  { sel: ['#clientiList'], title: 'Le clienti', text: 'Ogni cliente ha la sua scheda: quanto spende, ogni quanto viene, le formule colore e se ha dato il consenso ai messaggi promozionali.', view: 'clienti' },
   { sel: ['.kpis'], title: 'Oggi', text: 'Il riepilogo della giornata: incasso, prodotti da riordinare, clienti da richiamare e compleanni.', view: 'oggi' },
   { sel: ['.banner.close'], title: 'Chiusura giornata', text: 'Dalle 19:30 compare questo avviso. Premendo "Inizia" passate le clienti del giorno una per una: se era arrivata vi chiede quanto ha pagato, se no prima vi chiede se è venuta.', fallback: 'Dalle 19:30 compare l\'avviso "Chiusura giornata". Premendo "Inizia" passate le clienti del giorno una per una: se era arrivata vi chiede quanto ha pagato, se no prima vi chiede se è venuta.', view: 'oggi' },
   { sel: ['#magList'], title: 'Magazzino', text: '"Carico" quando arriva la merce, "Conta" per correggere dopo un inventario. Quello che scende sotto la scorta minima lo trovate anche in Oggi.', view: 'magazzino' },
@@ -2398,7 +2403,7 @@ document.addEventListener('submit', e => {
     cart.righe.push({ tipo: 'consumo', refId: p.id, descrizione: p.nome, qta: q, prezzo: 0, operatoreId: cart.operatoreId });
     closeModal(); refreshCart();
   }
-  if (kind === 'salone') { cfg.salone = f.elements.salone.value.trim() || 'FemiaStyle'; cfg.giorniPersi = Math.max(15, num(f.elements.giorniPersi.value) || 60); saveCfg(); render(); toast('Salvato'); }
+  if (kind === 'salone') { cfg.salone = f.elements.salone.value.trim() || 'FemiaStyle'; cfg.giorniPersi = Math.max(15, num(f.elements.giorniPersi.value) || 60); cfg.usaAllergie = f.elements.usaAllergie.checked; saveCfg(); render(); toast('Salvato'); }
   if (kind === 'msg') { ['msgPromemoria', 'msgRichiamo', 'msgAuguri'].forEach(k => (cfg[k] = f.elements[k].value)); saveCfg(); toast('Messaggi salvati'); }
   if (kind === 'orari') {
     const ap = f.elements.apertura.value || '09:00', ch = f.elements.chiusura.value || '19:00';
