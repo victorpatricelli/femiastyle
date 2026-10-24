@@ -55,6 +55,17 @@ Al primo avvio parte un **tutorial** con delle finestrelle che mostrano ogni par
 
 Senza internet l'app continua a funzionare: le modifiche partono appena torna la connessione. Più dispositivi si aggiornano tra loro ogni 2 minuti e ogni volta che riapri l'app.
 
+## Google Calendar (facoltativo)
+
+Gli appuntamenti si copiano da soli in un calendario Google **"FemiaStyle"**, nell'account del salone. Il collegamento va in una sola direzione: si prenota e si sposta sempre dall'app, il calendario serve per vedere gli appuntamenti sul telefono e ricevere le notifiche.
+
+1. Al PC del negozio apri il Foglio → **Estensioni → Apps Script**, sostituisci tutto il codice con il nuovo `Code.gs` e salva.
+2. In alto scegli la funzione **attivaCalendario** e premi **Esegui**. Google chiede il permesso di usare Calendar: accetta (*Avanzate → Vai a…*). Il calendario viene creato e ci finiscono gli appuntamenti già prenotati.
+3. **Esegui il deployment → Gestisci deployment → matita → Versione: Nuova versione → Esegui il deployment.** L'indirizzo resta lo stesso, non serve ricollegare i dispositivi.
+4. Per vederlo sui telefoni di Enzo, Sandra e Valeria: in Google Calendar (dal PC) → impostazioni del calendario "FemiaStyle" → **Condividi con persone specifiche** → aggiungi la loro email con "Visualizzare tutti i dettagli degli eventi". Non renderlo mai pubblico.
+
+Ogni evento ha nome e iniziale del cognome della cliente, i servizi e chi li fa, con un colore per persona. Gli appuntamenti annullati spariscono dal calendario, quelli non venuti restano con "(non venuta)". Se cambi nomi nel listino, puoi aggiornare tutto eseguendo **sincronizzaCalendario**. Per spegnere il collegamento: **disattivaCalendario**.
+
 ## Cose da sapere
 
 - **Privacy:** nome, telefono e storico servizi servono a fare il lavoro: basta il cartello con l'informativa alla cassa, senza firme. Chi vuole offerte, auguri e messaggi "ti aspettiamo" firma il mini-modulo e nella scheda si spunta "consenso ai messaggi promozionali": solo queste clienti compaiono tra i compleanni e le clienti da richiamare, e solo a loro l'app propone quei messaggi. I promemoria degli appuntamenti si mandano a tutte. Le allergie di base non si annotano (sono dati sulla salute): si attivano in *Impostazioni* solo con il modulo completo firmato. Il Foglio non va condiviso con nessuno fuori dal salone.
